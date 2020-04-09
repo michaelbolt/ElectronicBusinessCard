@@ -1,20 +1,9 @@
-//***************************************************************************************
-//  MSP430 Blink the LED Demo - Software Toggle P1.0
-//
-//  Description; Toggle P1.0 by xor'ing P1.0 inside of a software loop.
-//  ACLK = n/a, MCLK = SMCLK = default DCO
-//
-//                MSP430x5xx
-//             -----------------
-//         /|\|              XIN|-
-//          | |                 |
-//          --|RST          XOUT|-
-//            |                 |
-//            |             P1.0|-->LED
-//
-//  Texas Instruments, Inc
-//  July 2013
-//***************************************************************************************
+/*
+ * main.c
+ *
+ *  Created on: April 9, 2020
+ *      Author: Michael Bolt
+ */
 
 #include <msp430.h>
 #include <stdint.h>
@@ -32,11 +21,21 @@ void main(void) {
     volatile uint16_t ret = 100;                // value to capture returns
     ret = ssd1306_init();                       // initialize SSD1306 chip
     __delay_cycles(10000);                      // spin for a bit
-    uint16_t x,y;                               // iterate over every pixel
+
+    // fill in the screen
+    uint16_t x,y;
     for(x=0; x < SSD1306_COLUMNS; x++){
         for(y=0; y <SSD1306_ROWS; y++) {
-            ret = ssd1306_drawPixel(x, y, 1);   // fill every pixel
-            __delay_cycles(10000);              // slow down so we can see the drawing
+            ret = ssd1306_drawPixel(x, y, 1);
+            __delay_cycles(5000);
+        }
+    }
+
+    // clear every somethingth pixel
+    for(x=1; x < SSD1306_COLUMNS; x += 2) {
+        for(y = x&0x07; y < SSD1306_ROWS; y += 3) {
+            ret = ssd1306_drawPixel(x, y, 0);
+            __delay_cycles(5000);
         }
     }
 

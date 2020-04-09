@@ -8,6 +8,12 @@
 #include "SSD1306.h"
 
 
+/**************************************************************
+ *  Global Variables  *****************************************
+ **************************************************************/
+static uint8_t  ssd1306_vram[SSD1306_ROWS / 8][SSD1306_COLUMNS] = {0};
+
+
 
 /*
  * Initialize the SSD1306 display module
@@ -69,22 +75,31 @@ uint16_t ssd1306_drawPixel(uint16_t x, uint16_t y, uint8_t value){
     // ensure pixel location is valid
     if (x >= SSD1306_COLUMNS)   return 1;
     if (y >= SSD1306_ROWS)      return 2;
+
     // send configuration message
-    uint8_t configMsg[] = {
-        SSD1306_CMD_START,           // start commands
-        SSD1306_SETPAGERANGE,        // set page range:
-        y >> 3,                      //   y / 8
-        y >> 3,                      //   y / 8
-        SSD1306_SETCOLRANGE,         // set column range:
-        x,                           //   x
-        x                            //   x
+    const uint8_t page = y >> 3;
+    const uint8_t configMsg[] = {
+        SSD1306_CMD_START,          // start commands
+        SSD1306_SETPAGERANGE,       // set page range:
+        page,                       //   y / 8
+        page,                       //   y / 8
+        SSD1306_SETCOLRANGE,        // set column range:
+        x,                          //   x
+        x                           //   x
     };
     if (i2c_tx(SSD1306_I2C_ADDRESS, configMsg, sizeof configMsg))   return 3;
-    // send pixel to be drawn
-    uint8_t dataMsg[] = {
+
+    // draw pixel to VRAM
+    if(value)   ssd1306_vram[page][x] |=   0x01 << (y & 0x07);
+    else        ssd1306_vram[page][x] &= ~(0x01 << (y & 0x07));
+
+    // draw updated VRAM page to screen
+    const uint8_t dataMsg[] = {
         SSD1306_DATA_START,         // start data
-        value << (y & 0x07)         //   y % 8
+        ssd1306_vram[page][x]       //   VRAM page
     };
     if (i2c_tx(SSD1306_I2C_ADDRESS, dataMsg, sizeof dataMsg))       return 4;
+
+    // return successful
     return 0;
 }
