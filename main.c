@@ -22,23 +22,65 @@ void main(void) {
     ret = ssd1306_init();                       // initialize SSD1306 chip
     __delay_cycles(10000);                      // spin for a bit
 
-    // fill in the screen
+    // clear in the screen
     uint16_t x,y;
     for(x=0; x < SSD1306_COLUMNS; x++){
-        for(y=0; y <SSD1306_ROWS; y++) {
-            ret = ssd1306_drawPixel(x, y, 1);
-            __delay_cycles(5000);
-        }
-    }
-
-    // clear every somethingth pixel
-    for(x=1; x < SSD1306_COLUMNS; x += 2) {
-        for(y = x&0x07; y < SSD1306_ROWS; y += 3) {
+        for(y=0; y <SSD1306_ROWS; y+= 8) {
             ret = ssd1306_drawPixel(x, y, 0);
             __delay_cycles(5000);
         }
     }
 
+    // draw a pattern on the left half
+    for(x=0; x < SSD1306_COLUMNS/2; x += 2) {
+        for(y = x&0x07; y < SSD1306_ROWS; y += 3) {
+            ret = ssd1306_drawPixel(x, y, 1);
+            __delay_cycles(5000);
+        }
+    }
+
+    //draw a triangle
+    for(x=70; x < 83; x++) {
+        y = 25 + (x - 70);
+        ret = ssd1306_drawPixel(x, y, 1);
+        y = 31 - (x - 76);
+        ret = ssd1306_drawPixel(x, y, 1);
+        ret = ssd1306_drawPixel(x, 25, 1);
+        __delay_cycles(15000);
+    }
+
+    // draw a circle
+    unsigned int circle_x[] = {76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88};
+    unsigned int circle_y1[] = {10, 13, 14, 15, 15, 15, 15, 15, 14, 13, 10};
+    unsigned int circle_y2[] = {10,  7,  6,  5,  5,  5,  5,  5,  6,  7, 10};
+    for(x=0; x < 11; x++) {
+        ret = ssd1306_drawPixel(circle_x[x], circle_y1[x], 1);
+        ret = ssd1306_drawPixel(circle_x[x], circle_y2[x], 1);
+        __delay_cycles(10000);
+    }
+
+    // draw a smiley face
+    unsigned int eye1[2][5] = {
+        {100, 100, 100, 100, 100},
+        {16, 17, 18, 19, 20}
+    };
+    unsigned int eye2[2][5] = {
+        {110, 110, 110, 110, 110},
+        {16, 17, 18, 19, 20}
+    };
+    unsigned int mouth[2][13] = {
+        {100, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 110},
+        {12, 11, 9, 9, 9, 9, 9, 9, 9, 9, 10, 11, 12}
+    };
+    for(x = 0; x < 5; x++) {
+        ret = ssd1306_drawPixel(eye1[0][x], eye1[1][x], 1);
+        ret = ssd1306_drawPixel(eye2[0][x], eye2[1][x], 1);
+        __delay_cycles(10000);
+    }
+    for(x = 0; x < 13; x++) {
+        ret = ssd1306_drawPixel(mouth[0][x], mouth[1][x], 1);
+        __delay_cycles(10000);
+    }
 
 
     // blink red LED to show we are done
