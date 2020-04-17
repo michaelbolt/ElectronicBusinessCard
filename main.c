@@ -27,61 +27,33 @@ void main(void) {
     for(x=0; x < SSD1306_COLUMNS; x++){
         for(y=0; y <SSD1306_ROWS; y+= 8) {
             ret = ssd1306_drawPixel(x, y, 0);
-            __delay_cycles(5000);
         }
     }
 
-    // draw a pattern on the left half
-    for(x=0; x < SSD1306_COLUMNS/2; x += 2) {
-        for(y = x&0x07; y < SSD1306_ROWS; y += 3) {
-            ret = ssd1306_drawPixel(x, y, 1);
-            __delay_cycles(5000);
-        }
-    }
-
-    //draw a triangle
-    for(x=70; x < 83; x++) {
-        y = 25 + (x - 70);
-        ret = ssd1306_drawPixel(x, y, 1);
-        y = 31 - (x - 76);
-        ret = ssd1306_drawPixel(x, y, 1);
-        ret = ssd1306_drawPixel(x, 25, 1);
-        __delay_cycles(15000);
-    }
-
-    // draw a circle
-    unsigned int circle_x[] = {76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88};
-    unsigned int circle_y1[] = {10, 13, 14, 15, 15, 15, 15, 15, 14, 13, 10};
-    unsigned int circle_y2[] = {10,  7,  6,  5,  5,  5,  5,  5,  6,  7, 10};
-    for(x=0; x < 11; x++) {
-        ret = ssd1306_drawPixel(circle_x[x], circle_y1[x], 1);
-        ret = ssd1306_drawPixel(circle_x[x], circle_y2[x], 1);
-        __delay_cycles(10000);
-    }
-
-    // draw a smiley face
-    unsigned int eye1[2][5] = {
-        {100, 100, 100, 100, 100},
-        {16, 17, 18, 19, 20}
+    // draw checkerboard sprites in a few places to test
+    const uint8_t checkerBoard[8] = {
+        0xFF, 0xAB, 0xD5, 0xAB, 0xD5, 0xAB, 0xD5, 0xFF,
     };
-    unsigned int eye2[2][5] = {
-        {110, 110, 110, 110, 110},
-        {16, 17, 18, 19, 20}
-    };
-    unsigned int mouth[2][13] = {
-        {100, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 110},
-        {12, 11, 9, 9, 9, 9, 9, 9, 9, 9, 10, 11, 12}
-    };
-    for(x = 0; x < 5; x++) {
-        ret = ssd1306_drawPixel(eye1[0][x], eye1[1][x], 1);
-        ret = ssd1306_drawPixel(eye2[0][x], eye2[1][x], 1);
-        __delay_cycles(10000);
-    }
-    for(x = 0; x < 13; x++) {
-        ret = ssd1306_drawPixel(mouth[0][x], mouth[1][x], 1);
-        __delay_cycles(10000);
-    }
-
+    // first column
+    ret = ssd1306_drawSprite(8, 0, checkerBoard);
+    ret = ssd1306_drawSprite(0, 8, checkerBoard);
+    ret = ssd1306_drawSprite(8, 16, checkerBoard);
+    ret = ssd1306_drawSprite(0, 24, checkerBoard);
+    // offset in y
+    ret = ssd1306_drawSprite(24, 4, checkerBoard);
+    ret = ssd1306_drawSprite(32, 12, checkerBoard);
+    ret = ssd1306_drawSprite(24, 20, checkerBoard);
+    // offset in x
+    ret = ssd1306_drawSprite(52, 0, checkerBoard);
+    ret = ssd1306_drawSprite(60, 8, checkerBoard);
+    ret = ssd1306_drawSprite(52, 16, checkerBoard);
+    ret = ssd1306_drawSprite(60, 24, checkerBoard);
+    // off edge y
+    ret = ssd1306_drawSprite(96, 28, checkerBoard);
+    // off edge x
+    ret = ssd1306_drawSprite(124, 0, checkerBoard);
+    // off edge x & y
+    ret = ssd1306_drawSprite(124, 28, checkerBoard);
 
     // blink red LED to show we are done
     P1DIR |= 0x01;                          // Set P1.0 to output direction

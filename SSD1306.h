@@ -68,6 +68,7 @@
 
 uint16_t ssd1306_init(void);
 uint16_t ssd1306_drawPixel(uint16_t x, uint16_t y, uint8_t value);
+uint16_t ssd1306_drawSprite(uint16_t x, uint16_t y, const uint8_t *const sprite);
 
 
 #endif /* SSD1306_H_ */
