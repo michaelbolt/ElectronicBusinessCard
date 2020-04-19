@@ -113,7 +113,11 @@ uint16_t ssd1306_drawPixel(uint16_t x, uint16_t y, uint8_t value){
  * ! \param y: y coordinate of bottom left pixel of sprite [0:SSD1306_ROWS-1]
  * ! \param *sprite: pointer to 8x8 sprite data (const uint8_t[8])
  * !
- * ! \return 0: successful
+ * ! \return 0: successful, else error:
+ * !         1: x value out of range
+ * !         2: y value out of range
+ * !         3: I2C error during configuration
+ * !         4: I2C error during data transmission
  * !
  * ! Draws an 8x8 sprite to on-chip VRAM, then the updated VRAM region to SSD1306
  */
