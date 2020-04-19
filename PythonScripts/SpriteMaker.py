@@ -168,13 +168,8 @@ class spriteMaker :
 	def spriteNameChange(self, P):
 		"""Update sprite name in code output
 		"""
-		if P:
-			self.spriteName = P
-			self.code.delete('1.0','end')
-			if self.frameCount is 1:
-				self.code.insert('1.0','const uint8_t ' + self.spriteName + '[' + str(self.spriteWidth) + '] = {\n')
-			else:
-				self.code.insert('1.0','const uint8_t ' + self.spriteName + '[' + P + '][' + str(self.spriteWidth) + '] = {\n')
+		self.spriteName = P
+		self.frameCountChange(str(self.frameCount))
 		return True
 
 
