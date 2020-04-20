@@ -34,6 +34,22 @@ void main(void) {
     ret = ssd1306_drawSprite(40, 12, ship[2]);
     ret = ssd1306_drawSprite(56, 12, ship[3]);
 
+    // test dirtyRectBuff
+    uint8_t x=0, y=0;
+    // 1. read empty buffer (return 1);
+    ret = dirtyRect_read(&x, &y);
+    // 2. write buffer
+    for (x=16; x !=0; x--) {
+        ret = dirtyRect_write(x, x+10);
+    }
+    // 3. write to full buffer (return 1);
+    ret = dirtyRect_write(100, 100);
+    // 4. read full buffer, count how many times
+    unsigned int count = 0;
+    while(!dirtyRect_read(&x, &y)) {
+        count++;
+    }
+
     // blink red LED to show we are done
     P1DIR |= 0x01;                          // Set P1.0 to output direction
     for(;;) {

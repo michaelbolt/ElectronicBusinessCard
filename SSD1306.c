@@ -183,3 +183,51 @@ uint16_t ssd1306_drawSprite(uint16_t x, uint16_t y, const uint8_t *const sprite)
     // return successful
     return 0;
 }
+
+
+/*****************************
+ * Dirty Rectangle Animation *
+ *****************************/
+static DirtyRectangleBuffer dirtyRectBuff;
+
+/*
+ * ! write an (x,y) coordinate pair to the Dirty Rectangle buffer
+ * !
+ * ! \param x: x coordinate to write to buffer
+ * ! \param y: y coordinate to write to buffer
+ * !
+ * ! \return 0 if successful, 1 if buffer was already full
+ */
+uint16_t dirtyRect_write(uint8_t x, uint8_t y) {
+    // check if buffer is full
+    if (dirtyRectBuff.length == (1 << DIRTY_RECT_BUFFER_POWER))
+        return 1;
+    // else write values, increment writeIndex & length
+    dirtyRectBuff.coordinates[0][dirtyRectBuff.writeIndex] = x;
+    dirtyRectBuff.coordinates[1][dirtyRectBuff.writeIndex] = y;
+    dirtyRectBuff.writeIndex = (dirtyRectBuff.writeIndex + 1) & 0x0F;
+    dirtyRectBuff.length++;
+    return 0;
+}
+
+/*
+ * ! read an (x,y) coordinate pair from the Dirty Rectangle buffer
+ * !
+ * ! \param *x: reference to x value to store Dirty Rectangle buffer value
+ * ! \param *y: reference to y value to store Dirty Rectangle buffer value
+ * !
+ * ! \return 0 if successful, 1 if buffer was already full
+ */
+uint16_t dirtyRect_read(uint8_t *x, uint8_t *y) {
+    // check if buffer is empty
+    if (!dirtyRectBuff.length)
+        return 1;
+    //else read values, increment readIndex, decrement length
+    *x = dirtyRectBuff.coordinates[0][dirtyRectBuff.readIndex];
+    *y = dirtyRectBuff.coordinates[1][dirtyRectBuff.readIndex];
+    dirtyRectBuff.readIndex = (dirtyRectBuff.readIndex + 1) & 0x0F;
+    dirtyRectBuff.length--;
+    return 0;
+}
+
+

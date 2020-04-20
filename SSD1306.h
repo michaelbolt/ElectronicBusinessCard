@@ -22,7 +22,7 @@
 #define SSD1306_PAGE_STOP   ((DISPLAY_ROWS / 8) - 1)
 #define SSD1306_COL_START   0
 #define SSD1306_COL_STOP    (DISPLAY_COLS - 1)
-// SSD1306 Commands
+// SSD1306 Commands - see Datasheet
 #define SSD1306_CMD_START   0x00    // indicates following bytes are commands
 #define SSD1306_DATA_START  0x40    // indicates following bytes are data
 // Fundamental Command Table (p. 28)
@@ -65,10 +65,27 @@
 // Charge Pump Commands (p. 62)
 #define SSD1306_SETCHARGEPUMP       0x8D    // enable / disable charge pump
 
-
 uint16_t ssd1306_init(void);
 uint16_t ssd1306_drawPixel(uint16_t x, uint16_t y, uint8_t value);
 uint16_t ssd1306_drawSprite(uint16_t x, uint16_t y, const uint8_t *const sprite);
+
+
+
+/***********************************
+ * Dirty Rectangle Circular Buffer *
+ ***********************************/
+#define DIRTY_RECT_BUFFER_POWER 4   //length of buffer will be 2^POWER
+// struct definition
+typedef struct DirtyRectangleBuffer_S {
+    uint16_t    readIndex;
+    uint16_t    writeIndex;
+    uint16_t    length;
+    uint8_t     coordinates[2][1 << DIRTY_RECT_BUFFER_POWER];
+} DirtyRectangleBuffer;
+// function definitions
+uint16_t dirtyRect_write(uint8_t x, uint8_t y);
+uint16_t dirtyRect_read(uint8_t *x, uint8_t *y);
+
 
 
 #endif /* SSD1306_H_ */
