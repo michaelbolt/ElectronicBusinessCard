@@ -118,6 +118,7 @@ uint16_t ssd1306_drawPixel(uint16_t x, uint16_t y, uint8_t value){
  * !         2: y value out of range
  * !         3: I2C error during configuration
  * !         4: I2C error during data transmission
+ * !         5: dirty rectangle animation buffer was full
  * !
  * ! Draws an 8x8 sprite to on-chip VRAM, then the updated VRAM region to SSD1306
  */
@@ -125,6 +126,9 @@ uint16_t ssd1306_drawSprite(uint16_t x, uint16_t y, const uint8_t *const sprite)
     // ensure pixel location is valid
     if (x >= SSD1306_COLUMNS)   return 1;
     if (y >= SSD1306_ROWS)      return 2;
+
+    // add (x,y) coordinate to dirty rectangle animation buffer
+    if (dirtyRect_write(x, y))  return 5;
 
     // determine column range: [x:x+7]
     uint8_t colStop = x + 7;
@@ -145,7 +149,7 @@ uint16_t ssd1306_drawSprite(uint16_t x, uint16_t y, const uint8_t *const sprite)
         i--;                                              // decrement counter
         uint8_t lowerPage = sprite[i] << pageOffset;      // move sprite 'up'
         ssd1306_vram[pageStart][x+i] |= lowerPage;        // OR into VRAM
-        if (pageStop < SSD1306_ROWS / 8) {                      // only update second page if valid
+        if (pageStop < (SSD1306_ROWS / 8)) {                    // only update second page if valid
             uint8_t upperPage = sprite[i] >> (8-pageOffset);    // move sprite 'down'
             ssd1306_vram[pageStop][x+i] |= upperPage;           // OR into VRAM
         }
@@ -205,7 +209,7 @@ uint16_t dirtyRect_write(uint8_t x, uint8_t y) {
     // else write values, increment writeIndex & length
     dirtyRectBuff.coordinates[0][dirtyRectBuff.writeIndex] = x;
     dirtyRectBuff.coordinates[1][dirtyRectBuff.writeIndex] = y;
-    dirtyRectBuff.writeIndex = (dirtyRectBuff.writeIndex + 1) & 0x0F;
+    dirtyRectBuff.writeIndex = (dirtyRectBuff.writeIndex + 1) & ((1 << DIRTY_RECT_BUFFER_POWER) - 1);
     dirtyRectBuff.length++;
     return 0;
 }
@@ -225,9 +229,53 @@ uint16_t dirtyRect_read(uint8_t *x, uint8_t *y) {
     //else read values, increment readIndex, decrement length
     *x = dirtyRectBuff.coordinates[0][dirtyRectBuff.readIndex];
     *y = dirtyRectBuff.coordinates[1][dirtyRectBuff.readIndex];
-    dirtyRectBuff.readIndex = (dirtyRectBuff.readIndex + 1) & 0x0F;
+    dirtyRectBuff.readIndex = (dirtyRectBuff.readIndex + 1) & ((1 << DIRTY_RECT_BUFFER_POWER) - 1);
     dirtyRectBuff.length--;
     return 0;
 }
+
+/*
+ * clear all (x,y) sprite locations in VRAM that are listed in the Dirty Rectangle Buffer
+ */
+void dirtyRect_clearLastFrame(void) {
+    // iterate over all (x,y) coordinate in buffer
+    uint8_t x=0,
+            y=0;
+    while(!dirtyRect_read(&x, &y)) {
+        // determine column range
+        uint8_t colStop = x + 7;
+        if (colStop >= SSD1306_COLUMNS) {
+            colStop = SSD1306_COLUMNS - 1;
+        }
+        // determine page range
+        uint8_t pageStart = y >> 3, // y / 8 = starting page
+                pageStop = y >> 3;  // y / 8 = stopping page, unless..
+        if (y & 0x07)               // if y is not an integer multiple of 8,
+            pageStop++;             //   two pages must be updated
+        // update VRAM
+        unsigned int i = colStop - x + 1,       // counter for iterating
+                     pageOffset = y & 0x07;     // offset from bottom of page
+        while (i!=0) {
+            i--;                                        // decrement counter
+            uint8_t lowerPage = 0xFF << pageOffset;     // move box 'up'
+            ssd1306_vram[pageStart][x+i] &= ~lowerPage; // clear from VRAM
+            if (pageStop < (SSD1306_ROWS / 8)) {            // only update second page if valid
+                uint8_t upperPage = 0xFF >> (8-pageOffset); // move box 'down'
+                ssd1306_vram[pageStop][x+i] &= ~upperPage;  // clear from VRAM
+            }
+        }
+
+    }
+}
+
+
+
+
+
+
+
+
+
+
 
 

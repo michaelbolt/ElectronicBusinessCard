@@ -19,9 +19,9 @@
 #define SSD1306_ROWS        32      // number of rows on display
 #define SSD1306_COLUMNS     128     // number of columns on display
 #define SSD1306_PAGE_START  0
-#define SSD1306_PAGE_STOP   ((DISPLAY_ROWS / 8) - 1)
+#define SSD1306_PAGE_STOP   ((SSD1306_ROWS / 8) - 1)
 #define SSD1306_COL_START   0
-#define SSD1306_COL_STOP    (DISPLAY_COLS - 1)
+#define SSD1306_COL_STOP    (SSD1306_COLUMNS - 1)
 // SSD1306 Commands - see Datasheet
 #define SSD1306_CMD_START   0x00    // indicates following bytes are commands
 #define SSD1306_DATA_START  0x40    // indicates following bytes are data
@@ -85,6 +85,7 @@ typedef struct DirtyRectangleBuffer_S {
 // function definitions
 uint16_t dirtyRect_write(uint8_t x, uint8_t y);
 uint16_t dirtyRect_read(uint8_t *x, uint8_t *y);
+void dirtyRect_clearLastFrame(void);
 
 
 
