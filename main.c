@@ -9,6 +9,8 @@
 #include <stdint.h>
 #include "i2c.h"
 #include "ssd1306.h"
+#include <math.h>
+#include <stdio.h>
 
 void main(void) {
 
@@ -29,7 +31,7 @@ void main(void) {
         }
     }
 
-    // draw ship sprites in a few places
+    // ship sprites for animation
     const uint8_t ship[4][8] = {
         {0x14, 0x24, 0x3C, 0xFF, 0xFF, 0xFF, 0xA5, 0x99},
         {0x24, 0x28, 0x3C, 0xFF, 0xFF, 0xFF, 0xA5, 0x99},
@@ -37,9 +39,6 @@ void main(void) {
         {0x18, 0x14, 0x3C, 0xFF, 0xFF, 0xFF, 0xA5, 0x99}
         };
     unsigned int frame = 0;
-    x = 10;
-    y = 10;
-
 
 
     // blink red LED to show we are done
@@ -47,15 +46,20 @@ void main(void) {
     for(;;) {
         volatile unsigned int i;            // volatile to prevent optimization
         P1OUT ^= 0x01;                      // Toggle P1.0 using exclusive-OR
-        i = 10000;                          // SW Delay
+        i = 1000;                          // SW Delay
         do i--;
         while(i != 0);
-        // test spaceship animation
-        dirtyRect_clearLastFrame();
-        ssd1306_drawSprite(x, y, ship[frame]);
+        // test spaceship animation - sinusoidal and straight
+        display_frameStart();
+        display_drawSprite(x, y, ship[frame]);
+        display_drawSprite(x, 24, ship[frame]);
+        display_drawFrame();
         frame++;
         frame &= 0x03;
         x += 2;
         x &= 127;
+        float temp = (float)x / 13.0;
+        y = 8 + 8*cos(temp);
+        y &= 31;
     }
 }

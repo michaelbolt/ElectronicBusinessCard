@@ -13,8 +13,10 @@
 #include <stdint.h>
 #include "i2c.h"
 
-
-// hardware description
+/********************
+ * SSD1306 Hardware *
+ ********************/
+// Hardware description
 #define SSD1306_I2C_ADDRESS 0x3C    // default I2C address
 #define SSD1306_ROWS        32      // number of rows on display
 #define SSD1306_COLUMNS     128     // number of columns on display
@@ -64,18 +66,18 @@
 #define SSD1306_NOP                 0xE3    // no operation
 // Charge Pump Commands (p. 62)
 #define SSD1306_SETCHARGEPUMP       0x8D    // enable / disable charge pump
-
+// function definitions
 uint16_t ssd1306_init(void);
 uint16_t ssd1306_drawPixel(uint16_t x, uint16_t y, uint8_t value);
-uint16_t ssd1306_drawSprite(uint16_t x, uint16_t y, const uint8_t *const sprite);
 
 
 
-/***********************************
- * Dirty Rectangle Circular Buffer *
- ***********************************/
-#define DIRTY_RECT_BUFFER_POWER 4   //length of buffer will be 2^POWER
-// struct definition
+/*****************************
+ * Dirty Rectangle Animation *
+ *****************************/
+// length of buffer will be 2 ^ DIRTY_RECT_BUFFER_POWER
+#define DIRTY_RECT_BUFFER_POWER 4
+// Circular Buffer struct definition
 typedef struct DirtyRectangleBuffer_S {
     uint16_t    readIndex;
     uint16_t    writeIndex;
@@ -85,8 +87,22 @@ typedef struct DirtyRectangleBuffer_S {
 // function definitions
 uint16_t dirtyRect_write(uint8_t x, uint8_t y);
 uint16_t dirtyRect_read(uint8_t *x, uint8_t *y);
-void dirtyRect_clearLastFrame(void);
 
 
+
+/*************************
+ * Display Functionality *
+ *************************/
+// max length of list will be 4 * Dirty Rect Animation buffer list
+#define DISPLAY_REGION_LIST_POWER (DIRTY_RECT_BUFFER_POWER + 2)
+// Display Region List struct definition
+typedef struct DisplayRegionList_S {
+    uint16_t    length;
+    uint8_t     coordinates[2][1 << DISPLAY_REGION_LIST_POWER];
+} DisplayRegionList;
+// function definitions
+void display_frameStart(void);
+uint16_t display_drawSprite(uint16_t x, uint16_t y, const uint8_t *const sprite);
+uint16_t display_drawFrame(void);
 
 #endif /* SSD1306_H_ */

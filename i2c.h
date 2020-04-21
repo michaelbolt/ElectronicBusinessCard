@@ -11,7 +11,7 @@
 #include <msp430.h>
 #include <stdint.h>
 
-#define I2C_TX_BUFFER_SIZE      128
+#define I2C_TX_BUFFER_SIZE      130
 
 void i2c_init(void);
 uint16_t i2c_tx(uint8_t deviceAddress, const uint8_t *data, uint16_t count);

@@ -9,11 +9,9 @@
 
 
 /**************************************************************
- *  Global Variables  *****************************************
+ *  SSD1306 Functions  ****************************************
  **************************************************************/
 static uint8_t  ssd1306_vram[SSD1306_ROWS / 8][SSD1306_COLUMNS] = {0};
-
-
 
 /*
  * Initialize the SSD1306 display module
@@ -55,7 +53,6 @@ uint16_t ssd1306_init(void){
     // send list of commands
     return i2c_tx(SSD1306_I2C_ADDRESS, instructions, sizeof instructions);
 }
-
 
 
 /*
@@ -106,92 +103,9 @@ uint16_t ssd1306_drawPixel(uint16_t x, uint16_t y, uint8_t value){
 
 
 
-/*
- * ! Draw an 8x8 sprite at location (x,y)
- * !
- * ! \param x: x coordinate of bottom left pixel of sprite [0:SSD1306_COLUMNS-1]
- * ! \param y: y coordinate of bottom left pixel of sprite [0:SSD1306_ROWS-1]
- * ! \param *sprite: pointer to 8x8 sprite data (const uint8_t[8])
- * !
- * ! \return 0: successful, else error:
- * !         1: x value out of range
- * !         2: y value out of range
- * !         3: I2C error during configuration
- * !         4: I2C error during data transmission
- * !         5: dirty rectangle animation buffer was full
- * !
- * ! Draws an 8x8 sprite to on-chip VRAM, then the updated VRAM region to SSD1306
- */
-uint16_t ssd1306_drawSprite(uint16_t x, uint16_t y, const uint8_t *const sprite) {
-    // ensure pixel location is valid
-    if (x >= SSD1306_COLUMNS)   return 1;
-    if (y >= SSD1306_ROWS)      return 2;
-
-    // add (x,y) coordinate to dirty rectangle animation buffer
-    if (dirtyRect_write(x, y))  return 5;
-
-    // determine column range: [x:x+7]
-    uint8_t colStop = x + 7;
-    if (colStop >= SSD1306_COLUMNS) {
-        colStop = SSD1306_COLUMNS - 1;
-    }
-
-    // determine page range
-    uint8_t pageStart = y >> 3, // y / 8 = starting page
-            pageStop = y >> 3;  // y / 8 = stopping page, unless..
-    if (y & 0x07)               // if y is not an integer multiple of 8,
-        pageStop++;             //   two pages must be updated
-
-    // update VRAM
-    unsigned int i = colStop - x + 1,       // counter for iterating
-                 pageOffset = y & 0x07;     // offset from bottom of page
-    while (i!=0) {
-        i--;                                              // decrement counter
-        uint8_t lowerPage = sprite[i] << pageOffset;      // move sprite 'up'
-        ssd1306_vram[pageStart][x+i] |= lowerPage;        // OR into VRAM
-        if (pageStop < (SSD1306_ROWS / 8)) {                    // only update second page if valid
-            uint8_t upperPage = sprite[i] >> (8-pageOffset);    // move sprite 'down'
-            ssd1306_vram[pageStop][x+i] |= upperPage;           // OR into VRAM
-        }
-    }
-
-    // send configuration message
-    const uint8_t configMsg[] = {
-        SSD1306_CMD_START,          // start commands
-        SSD1306_SETPAGERANGE,       // set page range:
-        pageStart,                  //   y / 8
-        pageStop,                   //
-        SSD1306_SETCOLRANGE,        // set column range:
-        x,                          //   x
-        colStop                     //   min(x+7, 127)
-    };
-    if (i2c_tx(SSD1306_I2C_ADDRESS, configMsg, sizeof configMsg))   return 3;
-
-    // draw updated VRAM to screen
-    uint8_t dataMsg[9] = {  // message can be a max of 9 bytes
-        SSD1306_DATA_START  // start data
-    };
-    i = pageStart;
-    while (i != pageStop + 1) {                 // loop over pages
-        if (i < SSD1306_ROWS / 8) {                 // only if valid page
-            unsigned int j = colStop - x + 1;           // local counter to
-            while (j != 0) {                            // copy VRAM into dataMsg
-                j--;
-                dataMsg[j+1] = ssd1306_vram[i][x+j];
-            }
-            if (i2c_tx(SSD1306_I2C_ADDRESS, dataMsg, colStop-x+2))  return 4;
-        }
-        i++;
-    }
-
-    // return successful
-    return 0;
-}
-
-
-/*****************************
- * Dirty Rectangle Animation *
- *****************************/
+/**************************************************************
+ * Dirty Rectangle Animation **********************************
+ **************************************************************/
 static DirtyRectangleBuffer dirtyRectBuff;
 
 /*
@@ -220,7 +134,7 @@ uint16_t dirtyRect_write(uint8_t x, uint8_t y) {
  * ! \param *x: reference to x value to store Dirty Rectangle buffer value
  * ! \param *y: reference to y value to store Dirty Rectangle buffer value
  * !
- * ! \return 0 if successful, 1 if buffer was already full
+ * ! \return 0 if successful, 1 if buffer empty
  */
 uint16_t dirtyRect_read(uint8_t *x, uint8_t *y) {
     // check if buffer is empty
@@ -234,11 +148,20 @@ uint16_t dirtyRect_read(uint8_t *x, uint8_t *y) {
     return 0;
 }
 
+
+
+/**************************************************************
+ *  Display Functionality *************************************
+ **************************************************************/
+static DisplayRegionList dispRegionList;
+
+
 /*
- * clear all (x,y) sprite locations in VRAM that are listed in the Dirty Rectangle Buffer
+ * ! clear last frame from VRAM and update Display Region List;
+ * ! must be called at the start of each frame to draw
  */
-void dirtyRect_clearLastFrame(void) {
-    // iterate over all (x,y) coordinate in buffer
+void display_frameStart(void) {
+    // clear drawings from last frame (Dirty Rectangle Animation)
     uint8_t x=0,
             y=0;
     while(!dirtyRect_read(&x, &y)) {
@@ -247,11 +170,25 @@ void dirtyRect_clearLastFrame(void) {
         if (colStop >= SSD1306_COLUMNS) {
             colStop = SSD1306_COLUMNS - 1;
         }
+
         // determine page range
         uint8_t pageStart = y >> 3, // y / 8 = starting page
                 pageStop = y >> 3;  // y / 8 = stopping page, unless..
         if (y & 0x07)               // if y is not an integer multiple of 8,
             pageStop++;             //   two pages must be updated
+
+        // add (page,col) coordinates to display region list
+        dispRegionList.coordinates[0][dispRegionList.length] = pageStart;
+        dispRegionList.coordinates[1][dispRegionList.length] = x;
+        dispRegionList.length++;
+        if (pageStop != pageStart) {
+            if(pageStop <= SSD1306_PAGE_STOP) {
+                dispRegionList.coordinates[0][dispRegionList.length] = pageStop;
+                dispRegionList.coordinates[1][dispRegionList.length] = x;
+                dispRegionList.length++;
+            }
+        }
+
         // update VRAM
         unsigned int i = colStop - x + 1,       // counter for iterating
                      pageOffset = y & 0x07;     // offset from bottom of page
@@ -259,23 +196,221 @@ void dirtyRect_clearLastFrame(void) {
             i--;                                        // decrement counter
             uint8_t lowerPage = 0xFF << pageOffset;     // move box 'up'
             ssd1306_vram[pageStart][x+i] &= ~lowerPage; // clear from VRAM
-            if (pageStop < (SSD1306_ROWS / 8)) {            // only update second page if valid
+            // clear second page if necessary and valid
+            if ((pageStop != pageStart) && (pageStop <= SSD1306_PAGE_STOP)) {
                 uint8_t upperPage = 0xFF >> (8-pageOffset); // move box 'down'
                 ssd1306_vram[pageStop][x+i] &= ~upperPage;  // clear from VRAM
             }
         }
-
     }
 }
 
 
+/*
+ * ! Draw an 8x8 sprite at location (x,y) in VRAM
+ * !
+ * ! \param x: x coordinate of bottom left pixel of sprite [0:SSD1306_COLUMNS-1]
+ * ! \param y: y coordinate of bottom left pixel of sprite [0:SSD1306_ROWS-1]
+ * ! \param *sprite: pointer to 8x8 sprite data (const uint8_t[8])
+ * !
+ * ! \return 0: successful, else error:
+ * !         1: x value out of range
+ * !         2: y value out of range
+ * !         3: dirty rectangle animation buffer was full
+ * !
+ * ! Draws an 8x8 sprite to on-chip VRAM
+ */
+uint16_t display_drawSprite(uint16_t x, uint16_t y, const uint8_t *const sprite) {
+    // ensure pixel location is valid
+    if (x >= SSD1306_COLUMNS)   return 1;
+    if (y >= SSD1306_ROWS)      return 2;
+
+    // add (x,y) coordinate to dirty rectangle animation buffer
+    if (dirtyRect_write(x, y))  return 3;
+
+    // determine column range: [x:x+7]
+    uint8_t colStop = x + 7;
+    if (colStop >= SSD1306_COLUMNS) {
+        colStop = SSD1306_COLUMNS - 1;
+    }
+
+    // determine page range
+    uint8_t pageStart = y >> 3, // y / 8 = starting page
+            pageStop = y >> 3;  // y / 8 = stopping page, unless..
+    if (y & 0x07)               // if y is not an integer multiple of 8,
+        pageStop++;             //   two pages must be updated
+
+    // add (page,col) coordinates to display region list
+    dispRegionList.coordinates[0][dispRegionList.length] = pageStart;
+    dispRegionList.coordinates[1][dispRegionList.length] = x;
+    dispRegionList.length++;
+    if (pageStop != pageStart) {
+        if (pageStop <= SSD1306_PAGE_STOP) {
+            dispRegionList.coordinates[0][dispRegionList.length] = pageStop;
+            dispRegionList.coordinates[1][dispRegionList.length] = x;
+            dispRegionList.length++;
+        }
+    }
+
+    // update VRAM
+    unsigned int i = colStop - x + 1,       // counter for iterating
+                 pageOffset = y & 0x07;     // offset from bottom of page
+    while (i!=0) {
+        i--;                                              // decrement counter
+        uint8_t lowerPage = sprite[i] << pageOffset;      // move sprite 'up'
+        ssd1306_vram[pageStart][x+i] |= lowerPage;        // OR into VRAM
+        //if necessary, update second page
+        if ((pageStart != pageStop) && (pageStop <= SSD1306_PAGE_STOP)) {
+            uint8_t upperPage = sprite[i] >> (8-pageOffset);    // move sprite 'down'
+            ssd1306_vram[pageStop][x+i] |= upperPage;           // OR into VRAM
+        }
+    }
+
+    // return successful
+    return 0;
+}
 
 
+/*
+ * ! Draw an 8x8 sprite at location (x,y) in VRAM
+ * !
+ * ! \param x: x coordinate of bottom left pixel of sprite [0:SSD1306_COLUMNS-1]
+ * ! \param y: y coordinate of bottom left pixel of sprite [0:SSD1306_ROWS-1]
+ * ! \param *sprite: pointer to 8x8 sprite data (const uint8_t[8])
+ * !
+ * ! \return 0: successful, else error:
+ * !         1: I2C error during configuration
+ * !         2: I2C error during data transmission
+ * !         3: dirty rectangle animation buffer was full
+ * !
+ * ! Draws an 8x8 sprite to on-chip VRAM
+ */
+uint16_t display_drawFrame(void) {
+    // cocktail sort local variables
+    uint16_t start = 0,
+             end = dispRegionList.length - 1,
+             swapped = 1,
+             i = 0;
 
+    // sort display region list by column (coordinates[1][:])
+    while(swapped) {
+        swapped = 0;
+        //move forward through array
+        for(i=start; i<end; i++) {
+            if (dispRegionList.coordinates[1][i] > dispRegionList.coordinates[1][i+1]) {
+                uint8_t tempPage = dispRegionList.coordinates[0][i],
+                        tempCol  = dispRegionList.coordinates[1][i];
+                dispRegionList.coordinates[0][i] = dispRegionList.coordinates[0][i+1];
+                dispRegionList.coordinates[1][i] = dispRegionList.coordinates[1][i+1];
+                dispRegionList.coordinates[0][i+1] = tempPage;
+                dispRegionList.coordinates[1][i+1] = tempCol;
+                swapped = 1;
+            }
+        }
+        if (!swapped) break;
+        swapped = 0;
+        end--;
+        // move backwards through array
+        for(i=end; i>start; i--) {
+            if (dispRegionList.coordinates[1][i-1] > dispRegionList.coordinates[1][i]) {
+                uint8_t tempPage = dispRegionList.coordinates[0][i],
+                        tempCol  = dispRegionList.coordinates[1][i];
+                dispRegionList.coordinates[0][i] = dispRegionList.coordinates[0][i-1];
+                dispRegionList.coordinates[1][i] = dispRegionList.coordinates[1][i-1];
+                dispRegionList.coordinates[0][i-1] = tempPage;
+                dispRegionList.coordinates[1][i-1] = tempCol;
+                swapped = 1;
+            }
+        }
+        start++;
+    }
 
+    // sort display region list by page (coordinates[0][:])
+    start = 0;
+    end = dispRegionList.length-1;
+    swapped = 1;
+    while(swapped) {
+        swapped = 0;
+        //move forward through array
+        for(i=start; i<end; i++) {
+            if (dispRegionList.coordinates[0][i] > dispRegionList.coordinates[0][i+1]) {
+                uint8_t tempPage = dispRegionList.coordinates[0][i],
+                        tempCol  = dispRegionList.coordinates[1][i];
+                dispRegionList.coordinates[0][i] = dispRegionList.coordinates[0][i+1];
+                dispRegionList.coordinates[1][i] = dispRegionList.coordinates[1][i+1];
+                dispRegionList.coordinates[0][i+1] = tempPage;
+                dispRegionList.coordinates[1][i+1] = tempCol;
+                swapped = 1;
+            }
+        }
+        if (!swapped) break;
+        swapped = 0;
+        end--;
+        // move backwards through array
+        for(i=end; i>start; i--) {
+            if (dispRegionList.coordinates[0][i-1] > dispRegionList.coordinates[0][i]) {
+                uint8_t tempPage = dispRegionList.coordinates[0][i],
+                        tempCol  = dispRegionList.coordinates[1][i];
+                dispRegionList.coordinates[0][i] = dispRegionList.coordinates[0][i-1];
+                dispRegionList.coordinates[1][i] = dispRegionList.coordinates[1][i-1];
+                dispRegionList.coordinates[0][i-1] = tempPage;
+                dispRegionList.coordinates[1][i-1] = tempCol;
+                swapped = 1;
+            }
+        }
+        start++;
+    }
 
+    // write merged regions to SSD1306
+    i = 0;
+    while(i < dispRegionList.length) {
+        // find page and column ranges
+        uint8_t page = dispRegionList.coordinates[0][i];
+        uint8_t colStart = dispRegionList.coordinates[1][i];
+        uint8_t colStop = colStart + 7;
 
+        // attempt to merge column range to update
+        while((i < dispRegionList.length - 1) &&                    // as long as there's more
+              (dispRegionList.coordinates[0][i+1] == page) &&       // & on the same page
+              (dispRegionList.coordinates[1][i+1] <= colStop)) {    // & within column range
+                    i++;                                                // increment counter
+                    colStop = dispRegionList.coordinates[1][i] + 7;     // update colStop
+        }
 
+        // ensure colStop is valid
+        if (colStop >= SSD1306_COLUMNS) colStop = SSD1306_COLUMNS-1;
 
+        // send configuration message
+        const uint8_t configMsg[] = {
+            SSD1306_CMD_START,          // start commands
+            SSD1306_SETPAGERANGE,       // set page range:
+            page,                       //
+            page,                       //
+            SSD1306_SETCOLRANGE,        // set column range:
+            colStart,                   //
+            colStop                     //
+        };
+        if (i2c_tx(SSD1306_I2C_ADDRESS, configMsg, sizeof configMsg))   return 1;
 
+        // draw updated VRAM to screen
+        uint8_t dataMsg[129] = {    // message can be a max of 129 bytes
+            SSD1306_DATA_START      // start data
+        };
+        unsigned int j = colStop - colStart + 1;    // local counter to
+        while (j != 0) {                            // copy VRAM into dataMsg
+            j--;
+            dataMsg[j+1] = ssd1306_vram[page][colStart+j];
+        }
+        if (i2c_tx(SSD1306_I2C_ADDRESS, dataMsg, colStop-colStart+2))  return 2;
+
+        // update loop counter
+        i++;
+    }
+
+    // clear display regions list for next frame
+    dispRegionList.length = 0;
+
+    // return successful
+    return 0;
+}
 
