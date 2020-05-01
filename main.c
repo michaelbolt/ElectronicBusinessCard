@@ -6,11 +6,8 @@
  */
 
 #include <msp430.h>
-#include <stdint.h>
-#include "i2c.h"
-#include "ssd1306.h"
-#include <math.h>
-#include <stdio.h>
+
+volatile unsigned int btnCount = 0;
 
 void main(void) {
 
@@ -18,48 +15,43 @@ void main(void) {
     PM5CTL0 &= ~LOCKLPM5;                   // Disable the GPIO power-on default high-impedance mode
                                             // to activate previously configured port settings
 
-    // small sanity test of SSD1306
-    i2c_init();                                 // initialize I2C interface
-    volatile uint16_t ret = 100;                // value to capture returns
-    ret = ssd1306_init();                       // initialize SSD1306 chip
-    __delay_cycles(10000);                      // spin for a bit
-    // clear display
-    unsigned int x=0, y=0;
-    for(x=0; x < SSD1306_COLUMNS; x++) {
-        for(y=0; y < SSD1306_ROWS; y+= 8) {
-            ssd1306_drawPixel(x, y, 0);
-        }
-    }
+    // configure P1.0 as output for LED
+    P1DIR |=  BIT0;
+    P1OUT &= ~BIT0;
+    // configure P2.0 for a pushbutton interrupt
+    P2DIR &=  BIT0; // input
+    P2REN |=  BIT0; // enable pull-up/down resistor
+    P2OUT |=  BIT0; // set to pull-up
+    P2IES |=  BIT0; // interrupt on high-low transition
+    P2IFG &= ~BIT0; // make sure interrupt flag is cleared
+    P2IE  |=  BIT0; // enable interrupt
 
-    // ship sprites for animation
-    const uint8_t ship[4][8] = {
-        {0x14, 0x24, 0x3C, 0xFF, 0xFF, 0xFF, 0xA5, 0x99},
-        {0x24, 0x28, 0x3C, 0xFF, 0xFF, 0xFF, 0xA5, 0x99},
-        {0x28, 0x18, 0x3C, 0xFF, 0xFF, 0xFF, 0xA5, 0x99},
-        {0x18, 0x14, 0x3C, 0xFF, 0xFF, 0xFF, 0xA5, 0x99}
-        };
-    unsigned int frame = 0;
+    // enter low power mode to wait for interrupts
+    __bis_SR_register(GIE + LPM0_bits);
+}
 
-
-    // blink red LED to show we are done
-    P1DIR |= 0x01;                          // Set P1.0 to output direction
-    for(;;) {
-        volatile unsigned int i;            // volatile to prevent optimization
-        P1OUT ^= 0x01;                      // Toggle P1.0 using exclusive-OR
-        i = 1000;                          // SW Delay
-        do i--;
-        while(i != 0);
-        // test spaceship animation - sinusoidal and straight
-        display_frameStart();
-        display_drawSprite(x, y, ship[frame]);
-        display_drawSprite(x, 24, ship[frame]);
-        display_drawFrame();
-        frame++;
-        frame &= 0x03;
-        x += 2;
-        x &= 127;
-        float temp = (float)x / 13.0;
-        y = 8 + 8*cos(temp);
-        y &= 31;
-    }
+//******************************************************************************
+// Button Interrupts *************************************************************
+//******************************************************************************
+#pragma vector = PORT2_VECTOR
+__interrupt void P2_ISR(void)
+{
+  switch(__even_in_range(P2IV, 0x1F))
+  {
+    case P2IV_NONE:    break;        // Vector 0: No interrupts
+    case P2IV_P2IFG0:                // Vector 2: P2.0
+        P1OUT ^= BIT0;      // toggle LED
+        btnCount++;         // increment counter
+        __no_operation();   // set breakpoint here to check btnCount
+        break;
+    case P2IV_P2IFG1:  break;        // Vector 4: P2.1
+    case P2IV_P2IFG2:  break;        // Vector 6: P2.2
+    case P2IV_P2IFG3:  break;        // Vector 8: P2.3
+    case P2IV_P2IFG4:  break;        // Vector 10: P2.4
+    case P2IV_P2IFG5:  break;        // Vector 12: P2.5
+    case P2IV_P2IFG6:  break;        // Vector 14: P2.6
+    case P2IV_P2IFG7:  break;        // Vector 16: P2.7
+    default:
+        break;
+  }
 }
