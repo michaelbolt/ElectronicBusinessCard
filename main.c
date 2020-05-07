@@ -7,59 +7,51 @@
 
 #include <msp430.h>
 #include <stdint.h>
+#include "buttons.h"
 #include "i2c.h"
 #include "ssd1306.h"
-#include <math.h>
-#include <stdio.h>
 
+
+// main
 void main(void) {
 
     WDTCTL = WDTPW | WDTHOLD;               // Stop watchdog timer
     PM5CTL0 &= ~LOCKLPM5;                   // Disable the GPIO power-on default high-impedance mode
                                             // to activate previously configured port settings
 
-    // small sanity test of SSD1306
-    i2c_init();                                 // initialize I2C interface
-    volatile uint16_t ret = 100;                // value to capture returns
-    ret = ssd1306_init();                       // initialize SSD1306 chip
-    __delay_cycles(10000);                      // spin for a bit
-    // clear display
-    unsigned int x=0, y=0;
-    for(x=0; x < SSD1306_COLUMNS; x++) {
-        for(y=0; y < SSD1306_ROWS; y+= 8) {
-            ssd1306_drawPixel(x, y, 0);
+    buttons_init();
+    i2c_init();
+    ssd1306_init();
+    // configure P1.0 as output for LED
+    P1DIR |=  BIT0 | BIT1;
+    P1OUT &= ~(BIT0 | BIT1);
+
+    // enable interrupts
+    __bis_SR_register(GIE);
+
+    // sprite to draw for shoot button
+    const uint8_t arrow[8] = {0x18,0x18,0x18,0x18,0x99,0x5A,0x3C,0x18};
+    uint16_t x = 0;
+
+    // eternal loop
+    while(1) {
+        // UP button = red LED
+        if(readButton(BTN_UP))      P1OUT |=  BIT0;
+        else                        P1OUT &= ~BIT0;
+        // DOWN button = green LED
+        if(readButton(BTN_DOWN))    P1OUT |=  BIT1;
+        else                        P1OUT &= ~BIT1;
+        // SHOOT button = sprite!
+        if(readButton(BTN_SHOOT)) {
+            display_frameStart();
+            display_drawSprite(x, 12, arrow);
+            display_drawFrame();
+            x++;
+            x &= 127;
         }
-    }
-
-    // ship sprites for animation
-    const uint8_t ship[4][8] = {
-        {0x14, 0x24, 0x3C, 0xFF, 0xFF, 0xFF, 0xA5, 0x99},
-        {0x24, 0x28, 0x3C, 0xFF, 0xFF, 0xFF, 0xA5, 0x99},
-        {0x28, 0x18, 0x3C, 0xFF, 0xFF, 0xFF, 0xA5, 0x99},
-        {0x18, 0x14, 0x3C, 0xFF, 0xFF, 0xFF, 0xA5, 0x99}
-        };
-    unsigned int frame = 0;
-
-
-    // blink red LED to show we are done
-    P1DIR |= 0x01;                          // Set P1.0 to output direction
-    for(;;) {
-        volatile unsigned int i;            // volatile to prevent optimization
-        P1OUT ^= 0x01;                      // Toggle P1.0 using exclusive-OR
-        i = 1000;                          // SW Delay
-        do i--;
-        while(i != 0);
-        // test spaceship animation - sinusoidal and straight
-        display_frameStart();
-        display_drawSprite(x, y, ship[frame]);
-        display_drawSprite(x, 24, ship[frame]);
-        display_drawFrame();
-        frame++;
-        frame &= 0x03;
-        x += 2;
-        x &= 127;
-        float temp = (float)x / 13.0;
-        y = 8 + 8*cos(temp);
-        y &= 31;
+        __delay_cycles(10000);
     }
 }
+
+
+

@@ -1,5 +1,5 @@
 /*
- * i2c.h
+ * i2c.c
  *
  *  Created on: April 8, 2020
  *      Author: Michael Bolt
@@ -39,8 +39,6 @@ void i2c_init(void) {
     P1SEL1      &= ~(BIT2 | BIT3);
     // 4. Clear UCSWRST to release the eUSCI_B for operation
     UCB0CTLW0   &= ~(UCSWRST);
-    // 5. Enable interrupts
-    UCB0IE      |=  UCNACKIE;       // enable NACK interrupt
 }
 
 
@@ -67,14 +65,13 @@ uint16_t i2c_tx(uint8_t deviceAddress, const uint8_t *data, uint16_t count) {
         i2cTransmitBuffer[count] = data[count];
     } while (count);
 
-
-
     // configure and begin I2C transmission
-    UCB0I2CSA    = deviceAddress;   // set slave address
-    UCB0IFG     &= ~UCTXIFG;        // clear any pending interrupts
-    UCB0IE      |=  UCTXIE;         // enable TX interrupt
-    UCB0CTLW0   |=  UCTR |          // I2C TX mode
-                    UCTXSTT;        // send START condition
+    UCB0I2CSA    = deviceAddress;           // set slave address
+    UCB0IFG     &= ~(UCTXIFG | UCNACKIFG);  // clear any pending interrupts
+    UCB0IE      |=  UCTXIE |                // enable TX interrupt
+                    UCNACKIE;               // enable NACK interrupt
+    UCB0CTLW0   |=  UCTR |                  // I2C TX mode
+                    UCTXSTT;                // send START condition
 
     // enter LPM0 until transmission is complete
     __bis_SR_register(GIE + LPM0_bits);
@@ -99,8 +96,10 @@ __interrupt void USCI_B0_ISR(void) {
       case USCI_NONE:          break;           // Vector 0: No interrupts
       case USCI_I2C_UCALIFG:   break;           // Vector 2: ALIFG
       case USCI_I2C_UCNACKIFG:                  // Vector 4: NACKIFG
-        __bic_SR_register_on_exit(CPUOFF);          //exit LPM0
-        break;
+          UCB0CTLW0 |= UCTXSTP;                     // send stop condition
+          UCB0IE &= ~(UCTXIE | UCNACKIE);           // disable TX & NACK interrupts
+          __bic_SR_register_on_exit(CPUOFF);        // exit LPM0
+          break;
       case USCI_I2C_UCSTTIFG:  break;           // Vector 6: STTIFG
       case USCI_I2C_UCSTPIFG:  break;           // Vector 8: STPIFG
       case USCI_I2C_UCRXIFG3:  break;           // Vector 10: RXIFG3
@@ -117,7 +116,7 @@ __interrupt void USCI_B0_ISR(void) {
           }
           else {                                    //if done with transmission
             UCB0CTLW0 |= UCTXSTP;                       // Send stop condition
-            UCB0IE &= ~UCTXIE;                          // disable TX interrupt
+            UCB0IE &= ~(UCTXIE | UCNACKIE);             // disable TX & NACK interrupts
             __bic_SR_register_on_exit(CPUOFF);          // Exit LPM0
           }
           break;
