@@ -10,6 +10,7 @@
 #include "hardware.h"
 #include "i2c.h"
 #include "ssd1306.h"
+#include "game.h"
 
 
 // main
@@ -44,52 +45,13 @@ void main(void) {
         }
     }
 
-    // sprites
-    const uint8_t playerShip[4][8] = {
-        {0x89, 0xD3, 0xFF, 0xFF, 0x7E, 0x5A, 0x66, 0x3C},
-        {0x91, 0xD3, 0xFF, 0xFF, 0x7E, 0x5A, 0x66, 0x3C},
-        {0x91, 0xCB, 0xFF, 0xFF, 0x7E, 0x5A, 0x66, 0x3C},
-        {0x89, 0xCB, 0xFF, 0xFF, 0x7E, 0x5A, 0x66, 0x3C}
-        };
-    const uint8_t playerLaser[4][8] = {
-        {0x00, 0x08, 0x18, 0x10, 0x18, 0x18, 0x18, 0x18},
-        {0x08, 0x18, 0x10, 0x10, 0x18, 0x18, 0x18, 0x18},
-        {0x18, 0x10, 0x00, 0x18, 0x18, 0x18, 0x18, 0x18},
-        {0x10, 0x00, 0x08, 0x18, 0x18, 0x18, 0x18, 0x18}
-        };
-
-    uint16_t keyFrame = 0;  // which sprite frame to draw
-    int16_t y1 = 0,         // y position of ship 1
-            y2 = 0,         // y position of ship 2
-            s2 = 0;         // y speed of ship 2
-
+    gameInit();
     // game loop
     while(1) {
-        display_frameStart();   //
-        // playerController() version 1: speed based
-        if (readButton(BTN_UP))         y1 += 2;
-        else if (readButton(BTN_DOWN))  y1 -= 2;
-        if (y1 > 24)        y1 = 24;
-        else if (y1 < 0)    y1 = 0;
-        display_drawSprite(8, y1, playerShip[keyFrame]);
+        display_frameStart();
 
-        //playerController() version 2: acceleration based
-        if (readButton(BTN_UP))         s2++;   // increase speed upward
-        else if (readButton(BTN_DOWN))  s2--;   // increase speed downward
-        else {                                  // decrease speed (friction)
-            if (s2 > 0)         s2--;
-            else if (s2 < 0)    s2++;
-        }
-        if (s2 > 3)         s2 = 3;     // limit max speed
-        else if(s2 < -3)    s2 = -3;    // (terminal velocity)
-        y2 += s2;                       // update position
-        if (y2 > 24)        y2 = 24;    // wrap position
-        else if (y2 < 0)    y2 = 0;     // wrap position
-        display_drawSprite(32, y2, playerShip[keyFrame]);
-
-        // update which frame to draw
-        keyFrame++;
-        keyFrame &= 0x03;
+        playerController();
+        drawPlayer();
 
         // render the screen
         display_drawFrame();

@@ -5,8 +5,8 @@
  *      Author: Michael Bolt
  */
 
-#ifndef BUTTONS_H_
-#define BUTTONS_H_
+#ifndef HARDWARE_H_
+#define HARDWARE_H_
 
 
 #include <msp430.h>
