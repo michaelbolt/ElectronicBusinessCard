@@ -2,7 +2,7 @@
 This repository contains the code I am developing for my Electronic Business Card project. To see writeups and follow my progress, follow my blog: [Mr. Dr. Prof. Bolt](https://mrdrprofbolt.wordpress.com/).
 
 ### Current State of the Project:
-The MSP430FR2433 microcontroller is able to communicate with the SSD1306 OLED display through I2C and handle 8x8 sprite-based animations. A Python GUI is available to help with creating animated sprite data. GPIO Port 2 is debounced using a polling algorithm .
+The MSP430FR2433 microcontroller is able to communicate with the SSD1306 OLED display through I2C and handle 8x8 sprite-based animations. A Python GUI is available to help with creating animated sprite data. GPIO Port 2 is debounced using a polling algorithm. A basic game loop implementing player controls (vertical movement and lasers) operates at 16 Hz using the TimerA module and Low-Power Mode 3.
 
 ### Using the Sprite Maker GUI
 1. Download the `SpriteMaker.py` file from the `PythonScripts` folder.

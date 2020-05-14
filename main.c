@@ -7,9 +7,10 @@
 
 #include <msp430.h>
 #include <stdint.h>
-#include "buttons.h"
+#include "hardware.h"
 #include "i2c.h"
 #include "ssd1306.h"
+#include "game.h"
 
 
 // main
@@ -19,38 +20,55 @@ void main(void) {
     PM5CTL0 &= ~LOCKLPM5;                   // Disable the GPIO power-on default high-impedance mode
                                             // to activate previously configured port settings
 
-    buttons_init();
-    i2c_init();
-    ssd1306_init();
-    // configure P1.0 as output for LED
-    P1DIR |=  BIT0 | BIT1;
-    P1OUT &= ~(BIT0 | BIT1);
+    timer_init();       // initialize 16 Hz timer for constant frame rate
+    buttons_init();     // configure pushbuttons and debouncing routine
+    i2c_init();         // initialize I2C interface
+    ssd1306_init();     // initialize SSD1306 OLED
 
     // enable interrupts
     __bis_SR_register(GIE);
 
-    // sprite to draw for shoot button
-    const uint8_t arrow[8] = {0x18,0x18,0x18,0x18,0x99,0x5A,0x3C,0x18};
-    uint16_t x = 0;
-
-    // eternal loop
-    while(1) {
-        // UP button = red LED
-        if(readButton(BTN_UP))      P1OUT |=  BIT0;
-        else                        P1OUT &= ~BIT0;
-        // DOWN button = green LED
-        if(readButton(BTN_DOWN))    P1OUT |=  BIT1;
-        else                        P1OUT &= ~BIT1;
-        // SHOOT button = sprite!
-        if(readButton(BTN_SHOOT)) {
+    // clear screen
+    {
+        uint16_t r = 0,
+                 c = 0;
+        const uint8_t blank[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+        for (r = 0; r < SSD1306_COLUMNS; r += 8) {
             display_frameStart();
-            display_drawSprite(x, 12, arrow);
+            for (c = 0; c < SSD1306_ROWS; c += 8) {
+                display_drawSprite(r, c, blank);
+            }
             display_drawFrame();
-            x++;
-            x &= 127;
         }
-        __delay_cycles(10000);
     }
+
+    // initialize game
+    gameInit();
+    // game loop
+    while(1) {
+        // start frame
+        display_frameStart();
+
+        playerController(); // 1. update player character with user input
+//        updateEnemies();    // 2. update enemy positions and actions
+        updateLasers();     // 3. update player and enemy laser positions
+//        checkCollisions();  // 4. check if anybody needs to blow up,
+//                            //    update lives and score counters
+        drawPlayer();       // 5. draw the player sprite (if alive)
+//        drawEnemies();      // 6. draw the enemy sprites (if alive)
+        drawLasers();       // 7. draw the laser sprites (if alive)
+//        drawExplosions();   // 8. draw any explosions
+//        drawScore();        // 9. draw the current score
+//        drawLives();        // 10. draw the current number of lives
+
+        // render the screen
+        display_drawFrame();
+
+        // sleep until next frame
+        timer_sleep();
+    }
+
+
 }
 
 
