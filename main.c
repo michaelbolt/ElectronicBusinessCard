@@ -20,13 +20,10 @@ void main(void) {
     PM5CTL0 &= ~LOCKLPM5;                   // Disable the GPIO power-on default high-impedance mode
                                             // to activate previously configured port settings
 
-    timer_init();
-    buttons_init();
-    i2c_init();
-    ssd1306_init();
-    // configure P1.[0,1] as output for LED
-    P1DIR |=   BIT0 | BIT1;
-    P1OUT &= ~(BIT0 | BIT1);
+    timer_init();       // initialize 16 Hz timer for constant frame rate
+    buttons_init();     // configure pushbuttons and debouncing routine
+    i2c_init();         // initialize I2C interface
+    ssd1306_init();     // initialize SSD1306 OLED
 
     // enable interrupts
     __bis_SR_register(GIE);
@@ -45,20 +42,27 @@ void main(void) {
         }
     }
 
+    // initialize game
     gameInit();
     // game loop
     while(1) {
+        // start frame
         display_frameStart();
 
-        playerController();
-        drawPlayer();
+        playerController(); // 1. update player character with user input
+//        updateEnemies();    // 2. update enemy positions and actions
+        updateLasers();     // 3. update player and enemy laser positions
+//        checkCollisions();  // 4. check if anybody needs to blow up,
+//                            //    update lives and score counters
+        drawPlayer();       // 5. draw the player sprite (if alive)
+//        drawEnemies();      // 6. draw the enemy sprites (if alive)
+        drawLasers();       // 7. draw the laser sprites (if alive)
+//        drawExplosions();   // 8. draw any explosions
+//        drawScore();        // 9. draw the current score
+//        drawLives();        // 10. draw the current number of lives
 
         // render the screen
         display_drawFrame();
-
-        // SHOOT button = red LED
-        if(readButton(BTN_SHOOT))   P1OUT |=  BIT0;
-        else                        P1OUT &= ~BIT0;
 
         // sleep until next frame
         timer_sleep();
