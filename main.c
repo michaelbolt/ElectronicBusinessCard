@@ -43,19 +43,30 @@ void main(void) {
     }
 
     // initialize game
+    unsigned int frameCount = 0;
     gameInit();
     // game loop
     while(1) {
+        // draw enemies occasionally
+        if (!(frameCount % 20)) {
+            addEnemy(ENEMY_TYPE_BUZZ, 10);
+        }
+        if (!(frameCount % 31)) {
+            addEnemy(ENEMY_TYPE_TORPEDO, 20);
+        }
+        if (!(frameCount % 50)) {
+            addEnemy(ENEMY_TYPE_PILOT, 12);
+        }
         // start frame
         display_frameStart();
 
         playerController(); // 1. update player character with user input
-//        updateEnemies();    // 2. update enemy positions and actions
+        updateEnemies();    // 2. update enemy positions and actions
         updateLasers();     // 3. update player and enemy laser positions
 //        checkCollisions();  // 4. check if anybody needs to blow up,
 //                            //    update lives and score counters
         drawPlayer();       // 5. draw the player sprite (if alive)
-//        drawEnemies();      // 6. draw the enemy sprites (if alive)
+        drawEnemies();      // 6. draw the enemy sprites (if alive)
         drawLasers();       // 7. draw the laser sprites (if alive)
 //        drawExplosions();   // 8. draw any explosions
 //        drawScore();        // 9. draw the current score
@@ -66,6 +77,8 @@ void main(void) {
 
         // sleep until next frame
         timer_sleep();
+
+        frameCount++;
     }
 
 

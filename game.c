@@ -79,8 +79,8 @@ void drawPlayer(void) {
 //******************************************************************************
 
 // static global arrays for player and enemy lasers
-Laser playerLasers[LASER_MAX_PLAYER];
-Laser enemyLasers[LASER_MAX_ENEMY];
+static Laser playerLasers[LASER_MAX_PLAYER];
+static Laser enemyLasers[LASER_MAX_ENEMY];
 
 /*
  * ! Fire a laser from the current sprite's location
@@ -179,6 +179,165 @@ void drawLasers(void) {
 
 
 //******************************************************************************
+// Enemy Functions *************************************************************
+//******************************************************************************
+
+// static global array for enemies
+static Enemy enemies[MAX_ENEMIES];
+
+
+/*
+ * ! Add an enemy at the right side of the screen
+ * !
+ * ! \param type: constant indicating which type of
+ * !              enemy character to add:
+ * !                ENEMY_TYPE_TORPEDO,
+ * !                ENEMY_TYPE_BUZZ,
+ * !                ENEMY_TYPE_PILOT
+ * ! \param y: y coordinate of the new enemy
+ * !
+ * ! Enables and initializes the first available enemy in
+ * ! the enemies array
+ */
+void addEnemy(uint16_t type, uint16_t y) {
+    uint16_t i = 0;
+    for (i = 0; i < MAX_ENEMIES; i++) {
+        // add enemy to next available location
+        if (!enemies[i].type) {
+            enemies[i].x = ENEMY_X_START;
+            enemies[i].y = y;
+            enemies[i].keyFrame = 0;
+            switch(type) {
+                // Interstellar Torpedo
+                //   local = speed dividend
+                case ENEMY_TYPE_TORPEDO:
+                    enemies[i].type = ENEMY_TYPE_TORPEDO;
+                    enemies[i].local = ENEMY_TORPEDO_SPEED_0;
+                    break;
+                // Buzz Drone
+                //   local = current y direction
+                case ENEMY_TYPE_BUZZ:
+                    enemies[i].type = ENEMY_TYPE_BUZZ;
+                    enemies[i].local = ENEMY_BUZZ_UP;
+                    break;
+                // Ace Pilot
+                //   local = current y speed
+                case ENEMY_TYPE_PILOT:
+                    enemies[i].type = ENEMY_TYPE_PILOT;
+                    enemies[i].local = 0;
+                    break;
+            }
+            return;
+        }
+    }
+}
+
+
+/*
+ * ! Update position of all enemies
+ */
+void updateEnemies() {
+    // update all enabled enemies
+    uint16_t i = 0;
+    for (i = 0; i < MAX_ENEMIES; i++) {
+        switch(enemies[i].type) {
+            // Interstellar Torpedo behavior
+            case ENEMY_TYPE_TORPEDO:
+                // move to the left
+                enemies[i].x -= (enemies[i].local >> ENEMY_TORPEDO_DIVIDER);
+                // increase speed speed
+                enemies[i].local++;
+                break;
+            // Buzz Drone behavior
+            case ENEMY_TYPE_BUZZ:
+                // move to the left
+                enemies[i].x -= ENEMY_BUZZ_SPEED_X;
+                // if moving up...
+                if (enemies[i].local) {
+                    enemies[i].y += ENEMY_BUZZ_SPEED_Y;
+                    if (enemies[i].y > ENEMY_Y_MAX) {
+                        enemies[i].y = ENEMY_Y_MAX;
+                        enemies[i].local = ENEMY_BUZZ_DOWN;
+                    }
+                }
+                // else, moving down...
+                else {
+                    enemies[i].y -= ENEMY_BUZZ_SPEED_Y;
+                    if (enemies[i].y < 0) {
+                        enemies[i].y = 0;
+                        enemies[i].local = ENEMY_BUZZ_UP;
+                    }
+                }
+                break;
+            // Ace Pilot behavior
+            case ENEMY_TYPE_PILOT:
+                // move to the left
+                enemies[i].x -= ENEMY_PILOT_SPEED_X;
+                // try to track the player's Y coordinate...
+                // if above player window, accelerate downward
+                if (enemies[i].y > (player.y + ENEMY_PILOT_WINDOW)) {
+                    enemies[i].local -= 1;
+                    if (enemies[i].local < (-1*ENEMY_PILOT_SPEED_Y_MAX))
+                        enemies[i].local = (-1*ENEMY_PILOT_SPEED_Y_MAX);
+                }
+                // if below playe windowr, accelerate upward
+                else if (enemies[i].y < (player.y - ENEMY_PILOT_WINDOW)) {
+                    enemies[i].local += 1;
+                    if (enemies[i].local < (1*ENEMY_PILOT_SPEED_Y_MAX))
+                        enemies[i].local = (1*ENEMY_PILOT_SPEED_Y_MAX);
+                }
+                // if in player window, slow down
+                else {
+                    if (enemies[i].local > 0)
+                        enemies[i].local--;
+                    else if (enemies[i].local < 0)
+                        enemies[i].local++;
+                }
+                // update and limit y position
+                enemies[i].y += enemies[i].local;
+                if (enemies[i].y > ENEMY_Y_MAX)
+                    enemies[i].y = ENEMY_Y_MAX;
+                else if (enemies[i].y < 0)
+                    enemies[i].y = 0;
+                // TODO: LASER COUNTER??
+                break;
+            // default: disabled enemy
+            default:
+                break;
+        }
+        // disable if off screen
+        if (enemies[i].x < 0)
+            enemies[i].type = ENEMY_TYPE_DISABLED;
+    }
+}
+
+
+/*
+ * ! Draw all onscreen enemies
+ */
+void drawEnemies() {
+    // draw all enabled enemy sprites
+    uint16_t i = 0;
+    for (i = 0; i < MAX_ENEMIES; i++) {
+        // draw sprite
+        switch(enemies[i].type) {
+            case ENEMY_TYPE_TORPEDO:
+                display_drawSprite(enemies[i].x, enemies[i].y, interstellarTorpedo[enemies[i].keyFrame]);
+                break;
+            case ENEMY_TYPE_BUZZ:
+                display_drawSprite(enemies[i].x, enemies[i].y, buzzDrone[enemies[i].keyFrame]);
+                break;
+            case ENEMY_TYPE_PILOT:
+                display_drawSprite(enemies[i].x, enemies[i].y, acePilot[enemies[i].keyFrame]);
+                break;
+        }
+        enemies[i].keyFrame++;          // increment keyFrame counter
+        enemies[i].keyFrame &= 0x03;    // wrap keyFrame counter
+    }
+}
+
+
+//******************************************************************************
 // Game Logic Functions ********************************************************
 //******************************************************************************
 
@@ -196,6 +355,10 @@ void gameInit(void) {
     uint16_t i = 0;
     for (i = 0; i < LASER_MAX_PLAYER; i++)
         playerLasers[i].enabled = LASER_STATE_DISABLED;
-    for( i = 0; i < LASER_MAX_ENEMY; i++)
+    for (i = 0; i < LASER_MAX_ENEMY; i++)
         enemyLasers[i].enabled = LASER_STATE_DISABLED;
+    // disable all enemies
+    for (i = 0; i < MAX_ENEMIES; i++) {
+        enemies[i].type = ENEMY_TYPE_DISABLED;
+    }
 }
