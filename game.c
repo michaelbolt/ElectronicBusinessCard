@@ -7,6 +7,8 @@
 
 #include "game.h"
 
+// static global score - must be at top to provide access to all functions
+static uint32_t playerScore = 0;
 
 //******************************************************************************
 // Player Character Functions **************************************************
@@ -146,9 +148,11 @@ void updateLasers(void) {
         if (enemyLasers[i].enabled) {
             // move to the left
             enemyLasers[i].x -= LASER_SPEED;
-            // disable laser if off screen
-            if (enemyLasers[i].x < 0)
+            // disable laser if off screen and increase score
+            if (enemyLasers[i].x < 0) {
                 enemyLasers[i].enabled = LASER_STATE_DISABLED;
+                playerScore += 10;
+            }
         }
     }
 }
@@ -328,20 +332,22 @@ void drawEnemies() {
     // draw all enabled enemy sprites
     uint16_t i = 0;
     for (i = 0; i < MAX_ENEMIES; i++) {
-        // draw sprite
-        switch(enemies[i].type) {
-            case ENEMY_TYPE_TORPEDO:
-                display_drawSprite(enemies[i].x, enemies[i].y, interstellarTorpedo[enemies[i].keyFrame]);
-                break;
-            case ENEMY_TYPE_BUZZ:
-                display_drawSprite(enemies[i].x, enemies[i].y, buzzDrone[enemies[i].keyFrame]);
-                break;
-            case ENEMY_TYPE_PILOT:
-                display_drawSprite(enemies[i].x, enemies[i].y, acePilot[enemies[i].keyFrame & 0x00FF]);
-                break;
+        if (enemies[i].type) {
+            // draw sprite
+            switch(enemies[i].type) {
+                case ENEMY_TYPE_TORPEDO:
+                    display_drawSprite(enemies[i].x, enemies[i].y, interstellarTorpedo[enemies[i].keyFrame]);
+                    break;
+                case ENEMY_TYPE_BUZZ:
+                    display_drawSprite(enemies[i].x, enemies[i].y, buzzDrone[enemies[i].keyFrame]);
+                    break;
+                case ENEMY_TYPE_PILOT:
+                    display_drawSprite(enemies[i].x, enemies[i].y, acePilot[enemies[i].keyFrame & 0x00FF]);
+                    break;
+            }
+            enemies[i].keyFrame++;          // increment keyFrame counter
+            enemies[i].keyFrame &= 0xFF03;  // wrap keyFrame counter
         }
-        enemies[i].keyFrame++;          // increment keyFrame counter
-        enemies[i].keyFrame &= 0xFF03;  // wrap keyFrame counter
     }
 }
 
@@ -350,8 +356,18 @@ void drawEnemies() {
 // Collision Detection Functions ***********************************************
 //******************************************************************************
 
+// static global array for explosions
 static Explosion explosions[MAX_EXPLOSIONS];
 
+/*
+ * ! Add an explosion at the current location
+ * !
+ * ! \param x: x coordiante of exploding sprite
+ * ! \param y: y coordinate of exploding sprite
+ * !
+ * ! Enables and initializes the first available explosion
+ * ! in the explosions Explosion array
+ */
 void addExplosion(uint16_t x, uint16_t y) {
     uint16_t i = 0;
     for (i = 0; i < MAX_EXPLOSIONS; i++) {
@@ -366,6 +382,10 @@ void addExplosion(uint16_t x, uint16_t y) {
     }
 }
 
+
+/*
+ * ! Checks collisions between all on-screen game objects
+ */
 void checkCollisions() {
     uint16_t i = 0,
              j = 0;
@@ -392,15 +412,30 @@ void checkCollisions() {
             }
             // if something was hit..
             if (hit != MAX_ENEMIES) {
-                playerLasers[i].enabled = LASER_STATE_DISABLED;
-                enemies[hit].type = ENEMY_TYPE_DISABLED;
-                addExplosion(enemies[hit].x, enemies[hit].y);
+                addExplosion(enemies[hit].x, enemies[hit].y);   // add explosion
+                switch(enemies[hit].type) {                     // update score
+                case ENEMY_TYPE_TORPEDO:
+                    playerScore += 100;
+                    break;
+                case ENEMY_TYPE_BUZZ:
+                    playerScore += 200;
+                    break;
+                case ENEMY_TYPE_PILOT:
+                    playerScore += 300;
+                    break;
+                }
+                playerLasers[i].enabled = LASER_STATE_DISABLED; // remove player laser
+                enemies[hit].type = ENEMY_TYPE_DISABLED;        // remove destroyed enemy
             }
         }
     }
     // TODO: Player Explosion / Collision
 }
 
+
+/*
+ * ! Draw all on-screen explosions and disable once animation is complete
+ */
 void drawExplosions() {
     uint16_t i = 0;
     for (i = 0;i < MAX_EXPLOSIONS; i++) {
@@ -423,6 +458,8 @@ void drawExplosions() {
  * ! Initialize all data for start of game
  */
 void gameInit(void) {
+    // initialize score
+    playerScore = 0;
     // initialize player character
     player.y = 16;
     player.speed = 0;
@@ -439,4 +476,20 @@ void gameInit(void) {
     for (i = 0; i < MAX_ENEMIES; i++) {
         enemies[i].type = ENEMY_TYPE_DISABLED;
     }
+}
+
+
+/*
+ * ! Draw the player score in the top right corner of the screen
+ */
+void drawScore(void) {
+    uint32_t score = playerScore;   // local copy of playerScore to manipulate
+    uint16_t index = DIGIT_WIDTH;             // position to write to
+    // draw each digit one at a time
+    do {
+        uint16_t lsb = score % 10;  // store LSB
+        score /= 10;                // remove LSB
+        display_drawSprite(SSD1306_COL_STOP - index, 27, digits[lsb]);
+        index += DIGIT_WIDTH;
+    } while (score);
 }

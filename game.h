@@ -13,15 +13,12 @@
 #include "ssd1306.h"
 
 
-
-void gameInit(void);
-
 /********************
  * Player Character *
  ********************/
 // constant defines
 #define PLAYER_X_POSITION       2       // x position of sprite
-#define PLAYER_Y_MAX            24      // max y position
+#define PLAYER_Y_MAX            19      // max y position
 #define PLAYER_SPEED_MAX        3       // max y speed
 #define PLAYER_SPEED_STEP       1       // y speed step
 #define PLAYER_STATE_NORMAL     0x01    // normal state
@@ -76,7 +73,7 @@ void drawLasers(void);
 // constant defines
 #define MAX_ENEMIES             5   // maximum number of enemies onscreen
 #define ENEMY_X_START           127 // starting x coordinate of enemies
-#define ENEMY_Y_MAX             24  // max y position of enemies
+#define ENEMY_Y_MAX             19  // max y position of enemies
 #define ENEMY_TYPE_DISABLED     0   // inactive
 #define ENEMY_TYPE_TORPEDO      1   // Interstellar Torpedo enemy
 #define ENEMY_TYPE_BUZZ         2   // Buzz Drone enemy
@@ -114,7 +111,7 @@ void drawEnemies();
 /***********************
  * Collision Detection *
  ***********************/
-// constant / defines
+// constants / defines
 #define MAX_EXPLOSIONS              5
 #define EXPLOSION_STATE_ENABLED     1
 #define EXPLOSION_STATE_DISABLED    0
@@ -126,5 +123,15 @@ void addExplosion(uint16_t x, uint16_t y);
 void checkCollisions();
 void drawExplosions();
 
+
+/**************
+ * Game Logic *
+ **************/
+// constants / defines
+#define DIGIT_WIDTH     4
+extern const uint8_t digits[10][8];
+// functions
+void gameInit(void);
+void drawScore(void);
 
 #endif  /* GAME_H_ */

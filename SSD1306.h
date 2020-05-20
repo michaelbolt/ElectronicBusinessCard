@@ -76,7 +76,7 @@ uint16_t ssd1306_drawPixel(uint16_t x, uint16_t y, uint8_t value);
  * Dirty Rectangle Animation *
  *****************************/
 // length of buffer will be 2 ^ DIRTY_RECT_BUFFER_POWER
-#define DIRTY_RECT_BUFFER_POWER 4
+#define DIRTY_RECT_BUFFER_POWER 5
 // Circular Buffer struct definition
 typedef struct DirtyRectangleBuffer_S {
     uint16_t    readIndex;

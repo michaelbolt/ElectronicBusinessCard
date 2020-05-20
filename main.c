@@ -66,7 +66,7 @@ void main(void) {
         drawEnemies();      // 6. draw the enemy sprites (if alive)
         drawLasers();       // 7. draw the laser sprites (if alive)
         drawExplosions();   // 8. draw any explosions
-//        drawScore();        // 9. draw the current score
+        drawScore();        // 9. draw the current score
 //        drawLives();        // 10. draw the current number of lives
 
         // render the screen
