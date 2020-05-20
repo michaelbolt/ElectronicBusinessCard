@@ -170,7 +170,7 @@ void drawLasers(void) {
     // draw all enabled enemy lasers
     for (i = 0; i < LASER_MAX_ENEMY; i++) {
         if (enemyLasers[i].enabled) {
-            display_drawSprite(enemyLasers[i].x, enemyLasers[i].y, playerLaser[enemyLasers[i].keyFrame]);
+            display_drawSprite(enemyLasers[i].x, enemyLasers[i].y, acePilotLaser[enemyLasers[i].keyFrame]);
             enemyLasers[i].keyFrame++;          // update keyFrame counter
             enemyLasers[i].keyFrame &= 0x03;    // wrap keyFrame counter
         }
@@ -299,7 +299,16 @@ void updateEnemies() {
                     enemies[i].y = ENEMY_Y_MAX;
                 else if (enemies[i].y < 0)
                     enemies[i].y = 0;
-                // TODO: LASER COUNTER??
+                // laser counter is implemented in upper half of keyFrame:
+                //   decrement if > 0
+                if (enemies[i].keyFrame & 0xFF00) {
+                    enemies[i].keyFrame -= 0x0100;
+                }
+                //   if 0, fire and reset counter
+                else {
+                    fireLaser(LASER_TYPE_ENEMY, enemies[i].x, enemies[i].y);
+                    enemies[i].keyFrame += (ENEMY_PILOT_LASER_COUNT << 8);
+                }
                 break;
             // default: disabled enemy
             default:
@@ -328,11 +337,11 @@ void drawEnemies() {
                 display_drawSprite(enemies[i].x, enemies[i].y, buzzDrone[enemies[i].keyFrame]);
                 break;
             case ENEMY_TYPE_PILOT:
-                display_drawSprite(enemies[i].x, enemies[i].y, acePilot[enemies[i].keyFrame]);
+                display_drawSprite(enemies[i].x, enemies[i].y, acePilot[enemies[i].keyFrame & 0x00FF]);
                 break;
         }
         enemies[i].keyFrame++;          // increment keyFrame counter
-        enemies[i].keyFrame &= 0x03;    // wrap keyFrame counter
+        enemies[i].keyFrame &= 0xFF03;  // wrap keyFrame counter
     }
 }
 

@@ -103,7 +103,7 @@ typedef struct ENEMY_S {
     // flags / game logic
     uint16_t type;      // current enemy state/type
     uint16_t keyFrame;  // which sprite keyFrame to draw
-    int16_t local;      // enemy-specific local variable
+    int16_t  local;     // enemy-specific local variable
 } Enemy;
 // functions
 void addEnemy(uint16_t type, uint16_t y);
