@@ -347,6 +347,75 @@ void drawEnemies() {
 
 
 //******************************************************************************
+// Collision Detection Functions ***********************************************
+//******************************************************************************
+
+static Explosion explosions[MAX_EXPLOSIONS];
+
+void addExplosion(uint16_t x, uint16_t y) {
+    uint16_t i = 0;
+    for (i = 0; i < MAX_EXPLOSIONS; i++) {
+        // add next available explosion
+        if (!explosions[i].enabled) {
+            explosions[i].enabled = EXPLOSION_STATE_ENABLED;
+            explosions[i].x = x;
+            explosions[i].y = y;
+            explosions[i].keyFrame = 0;
+            return;
+        }
+    }
+}
+
+void checkCollisions() {
+    uint16_t i = 0,
+             j = 0;
+    // check player laser -> enemy collisions
+    for (i = 0; i < LASER_MAX_PLAYER; i++) {
+        if (playerLasers[i].enabled) {                          // if laser enabled..
+            uint8_t hit = MAX_ENEMIES;                          // local to hold enemy id
+            for (j = 0; j < MAX_ENEMIES; j++) {                 // iterate over enemies
+                if (enemies[j].type) {                              // if enemy enabled...
+                    // check if X hitboxes overlap
+                    if ((playerLasers[i].x + 7 >= enemies[j].x    ) &&
+                        (playerLasers[i].x     <= enemies[i].x + 7)   ){
+                        // torpedo Y hitbox
+                        if((enemies[j].type == ENEMY_TYPE_TORPEDO)     &&
+                           (playerLasers[i].y + 4 >= enemies[j].y + 2) &&
+                           (playerLasers[i].y + 3 <= enemies[j].y + 5)    )
+                            hit = j;
+                        // buzz drone / ace pilot Y hitbox
+                        else if((playerLasers[i].y + 4 >= enemies[j].y    ) &&
+                                (playerLasers[i].y + 3 <= enemies[j].y + 7)   )
+                            hit = j;
+                    }
+                }
+            }
+            // if something was hit..
+            if (hit != MAX_ENEMIES) {
+                playerLasers[i].enabled = LASER_STATE_DISABLED;
+                enemies[hit].type = ENEMY_TYPE_DISABLED;
+                addExplosion(enemies[hit].x, enemies[hit].y);
+            }
+        }
+    }
+    // TODO: Player Explosion / Collision
+}
+
+void drawExplosions() {
+    uint16_t i = 0;
+    for (i = 0;i < MAX_EXPLOSIONS; i++) {
+        if (explosions[i].enabled) {
+            display_drawSprite(explosions[i].x, explosions[i].y, explosion[explosions[i].keyFrame]);
+            explosions[i].keyFrame++;           // update keyFrame counter
+            explosions[i].keyFrame &= 0x07;     // wrap keyFrame counter
+            if (!explosions[i].keyFrame)        // if animation is complete..
+                explosions[i].enabled = EXPLOSION_STATE_DISABLED;   // disable explosion
+        }
+    }
+}
+
+
+//******************************************************************************
 // Game Logic Functions ********************************************************
 //******************************************************************************
 

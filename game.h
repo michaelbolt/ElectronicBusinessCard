@@ -25,7 +25,7 @@ void gameInit(void);
 #define PLAYER_SPEED_MAX        3       // max y speed
 #define PLAYER_SPEED_STEP       1       // y speed step
 #define PLAYER_STATE_NORMAL     0x01    // normal state
-#define PLAYER_STATE_EXPLODED   0x02    // exploded state
+#define PLAYER_STATE_EXPLODED   0x00    // exploded state
 #define PLAYER_LASER_DELAY      4       // number of frames between consecutive lasers
 extern const uint8_t playerShip[][8];   // player sprite defined in gameSprites.h
 // struct definition
@@ -110,6 +110,21 @@ void addEnemy(uint16_t type, uint16_t y);
 void updateEnemies();
 void drawEnemies();
 
+
+/***********************
+ * Collision Detection *
+ ***********************/
+// constant / defines
+#define MAX_EXPLOSIONS              5
+#define EXPLOSION_STATE_ENABLED     1
+#define EXPLOSION_STATE_DISABLED    0
+extern const uint8_t explosion[8][8];
+// struct definition
+typedef Laser Explosion;
+// functions
+void addExplosion(uint16_t x, uint16_t y);
+void checkCollisions();
+void drawExplosions();
 
 
 #endif  /* GAME_H_ */
