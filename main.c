@@ -47,8 +47,9 @@ void main(void) {
     unsigned int frameCount = 0;
     unsigned int enemyType = 1;
     gameInit(NEW_GAME);
-    // game loop
-    while(1) {
+    // game loop until the player runs out of lives
+    unsigned int num_lives = 3;
+    while(num_lives) {
         // draw enemies occasionally
         if (!(frameCount % 16)) {
             addEnemy(enemyType, 12);
@@ -58,17 +59,18 @@ void main(void) {
         // start frame
         display_frameStart();
 
-        playerController(); // 1. update player character with user input
-        updateEnemies();    // 2. update enemy positions and actions
-        updateLasers();     // 3. update player and enemy laser positions
-        checkCollisions();  // 4. check if anybody needs to blow up,
-                            //    update lives and score counters
-        drawPlayer();       // 5. draw the player sprite (if alive)
-        drawEnemies();      // 6. draw the enemy sprites (if alive)
-        drawLasers();       // 7. draw the laser sprites (if alive)
-        drawExplosions();   // 8. draw any explosions
-        drawScore();        // 9. draw the current score
-        drawLives();        // 10. draw the current number of lives
+        playerController();                 // 1. update player character with user input
+        updateEnemies();                    // 2. update enemy positions and actions
+        updateLasers();                     // 3. update player and enemy laser positions
+        checkCollisions();                  // 4. check if anybody needs to blow up,
+                                            //    update lives and score counters
+        drawPlayer();                       // 5. draw the player sprite (if alive)
+        drawEnemies();                      // 6. draw the enemy sprites (if alive)
+        drawLasers();                       // 7. draw the laser sprites (if alive)
+        drawExplosions();                   // 8. draw any explosions
+        drawScore(PLAYER_SCORE, 128, 27);   // 9a. draw the current player score
+        drawScore(HIGH_SCORE, 74, 27);      // 9b. draw the current high score
+        num_lives = drawLives();            // 10. draw the current number of lives
 
         // render the screen
         display_drawFrame();

@@ -135,10 +135,12 @@ extern const uint8_t digits[10][8];
 extern const uint8_t playerLife[1][8];
 #define NEW_GAME        0
 #define RESPAWN         1
+#define HIGH_SCORE      0
+#define PLAYER_SCORE    1
 // functions
 void gameInit(uint8_t respawn);
 void gameOver(void);
-void drawScore(void);
-void drawLives(void);
+void drawScore(uint16_t score, uint16_t x, uint16_t y);
+uint16_t drawLives(void);
 
 #endif  /* GAME_H_ */

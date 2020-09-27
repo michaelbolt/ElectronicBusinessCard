@@ -10,6 +10,7 @@
 // gamewide globals -  must be at top to provide access to all functions
 static uint32_t playerScore = 0;    // total score for the player
 static uint16_t playerLives = 3;    // number of lives the player has
+static uint16_t highScore = 65535;  // high score for all time
 
 //******************************************************************************
 // Player Character Functions **************************************************
@@ -81,7 +82,6 @@ void drawPlayer(void) {
         if (!(player.keyFrame--)) {
             // re-spawn if lives left
             if (playerLives)        gameInit(RESPAWN);
-            else                    gameOver();
         }
     }
 }
@@ -558,16 +558,25 @@ void gameOver(void) {
 
 
 /*
- * ! Draw the player score in the top right corner of the screen
+ * ! Draw a right-aligned score at the chosen (x,y) coordinate
+ *
+ * ! \param score: value to write
+ * ! \param x: x value for rightmost edge of score
+ * ! \param y: y value to draw score at
+ * !
+ * ! Draws the provided score number using 3x5 digit sprites from right
+ * ! to left from the provided (x,y) coordinatee
  */
-void drawScore(void) {
-    uint32_t score = playerScore;   // local copy of playerScore to manipulate
-    uint16_t index = DIGIT_WIDTH;             // position to write to
-    // draw each digit one at a time
+void drawScore(uint16_t player_score, uint16_t x, uint16_t y) {
+    uint16_t score = 0;                         // local copy of score to manipulate
+    if (player_score)   score = playerScore;
+    else                score = highScore;
+    uint16_t index = DIGIT_WIDTH;               // position to start writing from
     do {
+        // draw each digit one at a time
         uint16_t lsb = score % 10;  // store LSB
         score /= 10;                // remove LSB
-        display_drawSprite(SSD1306_COL_STOP - index, 27, digits[lsb]);
+        display_drawSprite(x - index, y, digits[lsb]);
         index += DIGIT_WIDTH;
     } while (score);
 }
@@ -575,12 +584,15 @@ void drawScore(void) {
 
 /*
  * ! Draw the player lives in the top left corner of the screen
+ * !
+ * ! \returns the current number of lives
  */
-void drawLives(void) {
+uint16_t drawLives(void) {
     uint16_t i = 0;             // local counter for looping
     uint16_t index = 0;         // location to draw to
     for(i = 0; i < playerLives; i++) {
         display_drawSprite(index, 27, playerLife[0]);   // draw each sprite
         index += LIFE_WIDTH;                            // update position to write to
     }
+    return playerLives;
 }
