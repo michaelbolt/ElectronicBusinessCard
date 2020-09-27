@@ -30,7 +30,8 @@ void i2c_init(void) {
                     UCMST |         // Master mode
                     UCSSEL__SMCLK | // CLK source: SMCLK (1 MHz default)
                     UCSYNC;         // Synchronous mode enable
-    UCB0BRW     =   3;              // SCL = SMCLK / 3 ~= 350 kHz
+//    UCB0BRW     =   3;              // SCL = SMCLK / 3 ~= 350 kHz
+    UCB0BRW     =   3*16;           // SCL = SMCLK / 3*16 ~350 KHz
     // 3. Configure ports:
     //   MSP430FR2433 datasheet p. 55
     //      P1.2 = SDA (DIR=X, SEL=01)

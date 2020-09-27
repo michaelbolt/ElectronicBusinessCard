@@ -7,6 +7,33 @@
 
 #include "hardware.h"
 
+//*****************************************************************************
+// Clock System Functions *****************************************************
+//*****************************************************************************
+
+/*
+ * ! Set clock frequency to 16 MHz
+ * ! Sets DCO (MCLK, SMCLK) to 1.048576 MHz (the classic 2^20)
+ */
+void clockSytem_init(void) {
+    // Configure one FRAM waitstate as required by the device datasheet for
+    // operation beyond 8 MHz before configuring the Clock System
+    FRCTL0 = FRCTLPW | NWAITS_1;
+
+    // Clock System setup
+    __bis_SR_register(SCG0);                    // disable FLL
+    CSCTL3 |= SELREF__REFOCLK;                  // set REFO as FLL reference source
+    CSCTL0 =0;                                  // clear DCO and MOD registers
+    CSCTL1 &= !(DCORSEL_7);                     // clear DCO frequency select bits first
+    // Follow TI's example for 16 MHz
+    CSCTL1 |= DCORSEL_5;                        // set DCO = 16 MHz
+    CSCTL2 = FLLD_0 + 487;                      // DCOCLKDIV = 16 MHz
+    __delay_cycles(3);
+    __bic_SR_register(SCG0);                    // enable FLL
+    while(CSCTL7 & (FLLUNLOCK0 | FLLUNLOCK1));  // wait for FLL lock
+}
+
+
 //******************************************************************************
 // Timer Functions *************************************************************
 //******************************************************************************

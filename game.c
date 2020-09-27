@@ -7,8 +7,9 @@
 
 #include "game.h"
 
-// static global score - must be at top to provide access to all functions
-static uint32_t playerScore = 0;
+// gamewide globals -  must be at top to provide access to all functions
+static uint32_t playerScore = 0;    // total score for the player
+static uint16_t playerLives = 3;    // number of lives the player has
 
 //******************************************************************************
 // Player Character Functions **************************************************
@@ -460,6 +461,8 @@ void drawExplosions() {
 void gameInit(void) {
     // initialize score
     playerScore = 0;
+    // initialize player lives
+    playerLives = 3;
     // initialize player character
     player.y = 16;
     player.speed = 0;
@@ -475,6 +478,10 @@ void gameInit(void) {
     // disable all enemies
     for (i = 0; i < MAX_ENEMIES; i++) {
         enemies[i].type = ENEMY_TYPE_DISABLED;
+    }
+    // disable all explosions
+    for (i = 0; i < MAX_EXPLOSIONS; i++) {
+        explosions[i].enabled = 0;
     }
 }
 
@@ -492,4 +499,17 @@ void drawScore(void) {
         display_drawSprite(SSD1306_COL_STOP - index, 27, digits[lsb]);
         index += DIGIT_WIDTH;
     } while (score);
+}
+
+
+/*
+ * ! Draw the player lives in the top left corner of the screen
+ */
+void drawLives(void) {
+    uint16_t i = 0;             // local counter for looping
+    uint16_t index = 0;         // location to draw to
+    for(i = 0; i < playerLives; i++) {
+        display_drawSprite(index, 27, playerLife[0]);   // draw each sprite
+        index += LIFE_WIDTH;                            // update position to write to
+    }
 }

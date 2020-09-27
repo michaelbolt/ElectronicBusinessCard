@@ -130,8 +130,11 @@ void drawExplosions();
 // constants / defines
 #define DIGIT_WIDTH     4
 extern const uint8_t digits[10][8];
+#define LIFE_WIDTH      6
+extern const uint8_t playerLife[1][8];
 // functions
 void gameInit(void);
 void drawScore(void);
+void drawLives(void);
 
 #endif  /* GAME_H_ */

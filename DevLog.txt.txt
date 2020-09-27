@@ -1,0 +1,28 @@
+Development log!
+Mostly for notese, won't be added to commits so feel free to write whateeeever you want ;)
+
+
+
+September 26, 2020
+
+- Finally got back around to tinkering! I just got CCS, git, Sublime, and all that stuff set up on here
+- Looking back over my last entry, what did I promise to do?
+-- "finish" the game, lol
+-- make the player ship explode, easy enough
+-- count the number of lives, again easy enough
+-- enter high scores. Oof. That's a lot of work cuz it requires entering initials which requires all those ASCII sprites... Maybe we'll just save the one maximum score and show it at the end with a "NEW HIGH SCORE" message. Or I could put the high core in the middle of the HUD? that's probaby the easiest way to do it. Then if the score is greater than max, trigger a fun litle fireworks show for the player.
+
+ Okay, so here's the breakdown of what I'll need to do:
+- a little heart sprite, 5 pixels tall for the player's life count
+- game logic to handle the player dying
+-- clear the screen of enemies, wait a couple seconds, etc.
+- high score saved to FRAM and displayed at the tippy top of the screen.
+
+Time to go to work!
+- Got a little heart sprite, put it away.
+
+
+September 27, 2020
+Back at it again with the white vans.
+
+

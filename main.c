@@ -20,6 +20,7 @@ void main(void) {
     PM5CTL0 &= ~LOCKLPM5;                   // Disable the GPIO power-on default high-impedance mode
                                             // to activate previously configured port settings
 
+    clockSytem_init();  // set MCLK and SMCLK to 16 MHz
     timer_init();       // initialize 16 Hz timer for constant frame rate
     buttons_init();     // configure pushbuttons and debouncing routine
     i2c_init();         // initialize I2C interface
@@ -67,7 +68,7 @@ void main(void) {
         drawLasers();       // 7. draw the laser sprites (if alive)
         drawExplosions();   // 8. draw any explosions
         drawScore();        // 9. draw the current score
-//        drawLives();        // 10. draw the current number of lives
+        drawLives();        // 10. draw the current number of lives
 
         // render the screen
         display_drawFrame();
