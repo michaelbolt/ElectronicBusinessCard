@@ -53,11 +53,13 @@ void playerController(void) {
     // decrement laserCounter if > 0
     if (player.laserCounter)
         player.laserCounter--;
-    // fire laser if button is pressed
-    if (readButton(BTN_SHOOT)) {
-        if (!player.laserCounter) {
-            fireLaser(LASER_TYPE_PLAYER, PLAYER_X_POSITION, player.y);
-            player.laserCounter = PLAYER_LASER_DELAY;
+    // fire laser if button is pressed and player is alive
+    if (player.state != PLAYER_STATE_EXPLODED) {
+        if (readButton(BTN_SHOOT)) {
+            if (!player.laserCounter) {
+                fireLaser(LASER_TYPE_PLAYER, PLAYER_X_POSITION, player.y);
+                player.laserCounter = PLAYER_LASER_DELAY;
+            }
         }
     }
 }
@@ -72,6 +74,15 @@ void drawPlayer(void) {
         display_drawSprite(PLAYER_X_POSITION, player.y, playerShip[player.keyFrame]);
         player.keyFrame++;          // increment keyFrame counter
         player.keyFrame &= 0x03;    // wrap keyFrame counter
+    }
+    // else, they've exploded...
+    else {
+        // wait for player.keyFrame to hit 0 before respawning
+        if (!(player.keyFrame--)) {
+            // re-spawn if lives left
+            if (playerLives)        gameInit(RESPAWN);
+            else                    gameOver();
+        }
     }
 }
 
@@ -430,7 +441,53 @@ void checkCollisions() {
             }
         }
     }
-    // TODO: Player Explosion / Collision
+    // check player collisions if not currently exploded
+    if (player.state == PLAYER_STATE_NORMAL) {
+       uint16_t hit = 0;                            // boolean to indicate if a hit is found
+       // iterate over enemies
+       for (i = 0; i < MAX_ENEMIES; i++) {
+           // if no hit found yet and enemy enabled...
+           if (!hit && enemies[i].type) {
+               // check if X hitboxes overlap
+               if ((PLAYER_X_POSITION + 7 >= enemies[i].x    ) &&
+                   (PLAYER_X_POSITION     <= enemies[i].x + 7)   ){
+                   // torpedo Y hitbox
+                   if ((enemies[i].type == ENEMY_TYPE_TORPEDO) &&
+                       (player.y + 7 >= enemies[i].y + 2)      &&
+                       (player.y     <= enemies[i].y + 5)        ){
+                       hit = 1;
+                   }
+                   // buzz drone / ace pilot Y hitbox
+                   else if ((player.y + 7 >= enemies[i].y    ) &&
+                            (player.y     <= enemies[i].y + 7)){
+                       hit = 1;
+                   }
+               }
+           }
+       }
+       // iterate over enemy lasers
+       for (i = 0; i < LASER_MAX_ENEMY; i++) {
+           // if no hit found yet and enemy laser enabled...
+           if (!hit && enemyLasers[i].enabled) {
+               // check if X hitboxes overlap
+               if ((PLAYER_X_POSITION + 7 >= enemyLasers[i].x    ) &&
+                   (PLAYER_X_POSITION     <= enemyLasers[i].x + 7)   ){
+                   // check if Y hitboxes overlap
+                   if ((player.y + 7 >= enemyLasers[i].y    ) &&
+                       (player.y     <= enemyLasers[i].y + 7)   ){
+                       hit = 1;
+                   }
+               }
+           }
+       }
+       // if the player was hit...
+       if (hit) {
+           player.state = PLAYER_STATE_EXPLODED;        // player is now 'sploded
+           player.keyFrame = PLAYER_RESPAWN_DELAY;      // delay between spawning
+           playerLives--;                               // decrement playerLives counter
+           addExplosion(PLAYER_X_POSITION, player.y);    // player's ship explodes
+       }
+    }
 }
 
 
@@ -456,13 +513,19 @@ void drawExplosions() {
 //******************************************************************************
 
 /*
- * ! Initialize all data for start of game
+ * ! Initialize data for start of game / respawn
+ * !
+ * ! \param respawn: boolean indicating if this is a respawn (True) or
+ * !                 new game (False)
  */
-void gameInit(void) {
-    // initialize score
-    playerScore = 0;
-    // initialize player lives
-    playerLives = 3;
+void gameInit(uint8_t respawn) {
+    // if not respawning, initialize score and lives
+    if (!respawn) {
+        // initialize score
+        playerScore = 0;
+        // initialize player lives
+        playerLives = 3;
+    }
     // initialize player character
     player.y = 16;
     player.speed = 0;
@@ -483,6 +546,14 @@ void gameInit(void) {
     for (i = 0; i < MAX_EXPLOSIONS; i++) {
         explosions[i].enabled = 0;
     }
+}
+
+
+/*
+ * ! handle a game over scenario.
+ */
+void gameOver(void) {
+    gameInit(NEW_GAME);
 }
 
 

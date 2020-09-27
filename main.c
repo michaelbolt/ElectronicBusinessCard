@@ -46,7 +46,7 @@ void main(void) {
     // initialize game
     unsigned int frameCount = 0;
     unsigned int enemyType = 1;
-    gameInit();
+    gameInit(NEW_GAME);
     // game loop
     while(1) {
         // draw enemies occasionally

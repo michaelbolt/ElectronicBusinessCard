@@ -24,6 +24,7 @@
 #define PLAYER_STATE_NORMAL     0x01    // normal state
 #define PLAYER_STATE_EXPLODED   0x00    // exploded state
 #define PLAYER_LASER_DELAY      4       // number of frames between consecutive lasers
+#define PLAYER_RESPAWN_DELAY    32      // number of frames between player death and respawn
 extern const uint8_t playerShip[][8];   // player sprite defined in gameSprites.h
 // struct definition
 typedef struct PLAYER_S {
@@ -132,8 +133,11 @@ void drawExplosions();
 extern const uint8_t digits[10][8];
 #define LIFE_WIDTH      6
 extern const uint8_t playerLife[1][8];
+#define NEW_GAME        0
+#define RESPAWN         1
 // functions
-void gameInit(void);
+void gameInit(uint8_t respawn);
+void gameOver(void);
 void drawScore(void);
 void drawLives(void);
 
