@@ -114,6 +114,7 @@ void drawEnemies();
  ***********************/
 // constants / defines
 #define MAX_EXPLOSIONS              5
+#define EXPLOSION_ANIMATION_LENGTH  8
 #define EXPLOSION_STATE_ENABLED     1
 #define EXPLOSION_STATE_DISABLED    0
 extern const uint8_t explosion[8][8];
@@ -137,10 +138,14 @@ extern const uint8_t playerLife[1][8];
 #define RESPAWN         1
 #define HIGH_SCORE      0
 #define PLAYER_SCORE    1
+#define HIGH_SCORE_ANIMATION_LENGTH     (8*16)
+#define RANDOM_NUMBER_SEED              0xB017
 // functions
 void gameInit(uint8_t respawn);
-void gameOver(void);
 void drawScore(uint16_t score, uint16_t x, uint16_t y);
 uint16_t drawLives(void);
+uint16_t saveHighScore(void);
+void highScoreAnimation(uint16_t animation_frame);
+uint16_t randomNumber();
 
 #endif  /* GAME_H_ */

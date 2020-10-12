@@ -15,7 +15,6 @@
 
 // main
 void main(void) {
-
     WDTCTL = WDTPW | WDTHOLD;               // Stop watchdog timer
     PM5CTL0 &= ~LOCKLPM5;                   // Disable the GPIO power-on default high-impedance mode
                                             // to activate previously configured port settings
@@ -80,8 +79,44 @@ void main(void) {
 
         frameCount++;
     }
+    // when game over occurs...
+    if (saveHighScore()) {                  // if a high-score did occur...
+        // clear screen
+        {
+            uint16_t r = 0,
+                     c = 0;
+            const uint8_t blank[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+            for (r = 0; r < SSD1306_COLUMNS; r += 8) {
+                display_frameStart();
+                for (c = 0; c < SSD1306_ROWS; c += 8) {
+                    display_drawSprite(r, c, blank);
+                }
+                display_drawFrame();
+            }
+        }
+        // clear frameCount to begin New High Score animation
+        frameCount = 0;
+        while (frameCount < HIGH_SCORE_ANIMATION_LENGTH) {
+            // start frame
+            display_frameStart();
 
+            // add explosions
+            highScoreAnimation(frameCount);     // add animations
+            drawExplosions();                   // animate explosions
+            drawScore(HIGH_SCORE, 74, 27);      // draw the new high score
 
+            // render the screen
+            display_drawFrame();
+
+            // sleep until the next frame
+            timer_sleep();
+
+            // increment New High Score animation frame counter
+            frameCount++;
+        }
+    }
+    // restart MicroController to begin again
+    WDTCTL |= 0xBADA55;
 }
 
 

@@ -10,7 +10,7 @@
 // gamewide globals -  must be at top to provide access to all functions
 static uint32_t playerScore = 0;    // total score for the player
 static uint16_t playerLives = 3;    // number of lives the player has
-static uint16_t highScore = 65535;  // high score for all time
+static uint16_t highScore = 0;  // high score for all time
 
 //******************************************************************************
 // Player Character Functions **************************************************
@@ -550,16 +550,8 @@ void gameInit(uint8_t respawn) {
 
 
 /*
- * ! handle a game over scenario.
- */
-void gameOver(void) {
-    gameInit(NEW_GAME);
-}
-
-
-/*
  * ! Draw a right-aligned score at the chosen (x,y) coordinate
- *
+ * !
  * ! \param score: value to write
  * ! \param x: x value for rightmost edge of score
  * ! \param y: y value to draw score at
@@ -595,4 +587,46 @@ uint16_t drawLives(void) {
         index += LIFE_WIDTH;                            // update position to write to
     }
     return playerLives;
+}
+
+
+/*
+ * ! check if the player's score is a higher than the current high
+ * ! score. If so, save the new high score and return 1; else, return 0
+ */
+uint16_t saveHighScore(void) {
+    if (playerScore >= highScore) {
+        highScore = playerScore;
+        return 1;
+    }
+    return 0;
+}
+
+
+/*
+ * ! draws an explosion in a random (x,y) coordinate to give the impression
+ * ! of a fireworks show to celebrate a new high score
+ */
+void highScoreAnimation(uint16_t animation_frame) {
+    // add a new firework if there's enough time for the animation
+    if (animation_frame < (HIGH_SCORE_ANIMATION_LENGTH - EXPLOSION_ANIMATION_LENGTH)) {
+        uint16_t x,y;
+        // get random X coordinate on-screen
+        x = randomNumber() & SSD1306_COL_STOP;
+        // get random Y coordinate that won't overlap the score
+        y = randomNumber() & 0x0F;
+        // draw the new random firework
+        addExplosion(x, y);
+    }
+}
+
+
+/*
+ * ! return the next number in the PRBS-11 pseudo-random number sequence
+ */
+uint16_t randomNumber() {
+    static uint16_t prbs_value = RANDOM_NUMBER_SEED;
+    uint16_t new_bit = ((prbs_value >> 10) ^ (prbs_value >> 8)) & 0x01;
+    prbs_value = (prbs_value << 1) | new_bit;
+    return prbs_value;
 }
