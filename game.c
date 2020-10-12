@@ -10,6 +10,7 @@
 // gamewide globals -  must be at top to provide access to all functions
 static uint32_t playerScore = 0;    // total score for the player
 static uint16_t playerLives = 3;    // number of lives the player has
+#pragma PERSISTENT(highScore)
 static uint16_t highScore = 0;  // high score for all time
 
 //******************************************************************************
@@ -596,7 +597,12 @@ uint16_t drawLives(void) {
  */
 uint16_t saveHighScore(void) {
     if (playerScore >= highScore) {
+        //unlock FRAM
+        SYSCFG0 = FRWPPW | DFWP;
+        //store new high score and initials
         highScore = playerScore;
+        //re-lock FRAM
+        SYSCFG0 = FRWPPW | PFWP | DFWP;
         return 1;
     }
     return 0;

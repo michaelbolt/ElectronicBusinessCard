@@ -75,6 +75,7 @@ void drawLasers(void);
 #define MAX_ENEMIES             5   // maximum number of enemies onscreen
 #define ENEMY_X_START           127 // starting x coordinate of enemies
 #define ENEMY_Y_MAX             19  // max y position of enemies
+#define ENEMY_SPAWN_RATE_MIN    8   // minimum frames between enemy spawn
 #define ENEMY_TYPE_DISABLED     0   // inactive
 #define ENEMY_TYPE_TORPEDO      1   // Interstellar Torpedo enemy
 #define ENEMY_TYPE_BUZZ         2   // Buzz Drone enemy
@@ -138,7 +139,7 @@ extern const uint8_t playerLife[1][8];
 #define RESPAWN         1
 #define HIGH_SCORE      0
 #define PLAYER_SCORE    1
-#define HIGH_SCORE_ANIMATION_LENGTH     (8*16)
+#define HIGH_SCORE_ANIMATION_LENGTH     (5*16)
 #define RANDOM_NUMBER_SEED              0xB017
 // functions
 void gameInit(uint8_t respawn);
