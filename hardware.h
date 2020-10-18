@@ -12,6 +12,11 @@
 #include <msp430.h>
 #include <stdint.h>
 
+/*************************
+ * Clock System Function *
+ *************************/
+void clockSytem_init(void);
+
 /*******************
  * Timer Functions *
  *******************/

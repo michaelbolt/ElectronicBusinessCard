@@ -24,6 +24,7 @@
 #define PLAYER_STATE_NORMAL     0x01    // normal state
 #define PLAYER_STATE_EXPLODED   0x00    // exploded state
 #define PLAYER_LASER_DELAY      4       // number of frames between consecutive lasers
+#define PLAYER_RESPAWN_DELAY    32      // number of frames between player death and respawn
 extern const uint8_t playerShip[][8];   // player sprite defined in gameSprites.h
 // struct definition
 typedef struct PLAYER_S {
@@ -74,6 +75,7 @@ void drawLasers(void);
 #define MAX_ENEMIES             5   // maximum number of enemies onscreen
 #define ENEMY_X_START           127 // starting x coordinate of enemies
 #define ENEMY_Y_MAX             19  // max y position of enemies
+#define ENEMY_SPAWN_RATE_MIN    8   // minimum frames between enemy spawn
 #define ENEMY_TYPE_DISABLED     0   // inactive
 #define ENEMY_TYPE_TORPEDO      1   // Interstellar Torpedo enemy
 #define ENEMY_TYPE_BUZZ         2   // Buzz Drone enemy
@@ -113,6 +115,7 @@ void drawEnemies();
  ***********************/
 // constants / defines
 #define MAX_EXPLOSIONS              5
+#define EXPLOSION_ANIMATION_LENGTH  8
 #define EXPLOSION_STATE_ENABLED     1
 #define EXPLOSION_STATE_DISABLED    0
 extern const uint8_t explosion[8][8];
@@ -130,8 +133,20 @@ void drawExplosions();
 // constants / defines
 #define DIGIT_WIDTH     4
 extern const uint8_t digits[10][8];
+#define LIFE_WIDTH      6
+extern const uint8_t playerLife[1][8];
+#define NEW_GAME        0
+#define RESPAWN         1
+#define HIGH_SCORE      0
+#define PLAYER_SCORE    1
+#define HIGH_SCORE_ANIMATION_LENGTH     (5*16)
+#define RANDOM_NUMBER_SEED              0xB017
 // functions
-void gameInit(void);
-void drawScore(void);
+void gameInit(uint8_t respawn);
+void drawScore(uint16_t score, uint16_t x, uint16_t y);
+uint16_t drawLives(void);
+uint16_t saveHighScore(void);
+void highScoreAnimation(uint16_t animation_frame);
+uint16_t randomNumber();
 
 #endif  /* GAME_H_ */

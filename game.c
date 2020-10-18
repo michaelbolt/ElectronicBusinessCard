@@ -7,8 +7,11 @@
 
 #include "game.h"
 
-// static global score - must be at top to provide access to all functions
-static uint32_t playerScore = 0;
+// gamewide globals -  must be at top to provide access to all functions
+static uint32_t playerScore = 0;    // total score for the player
+static uint16_t playerLives = 3;    // number of lives the player has
+#pragma PERSISTENT(highScore)
+static uint16_t highScore = 0;  // high score for all time
 
 //******************************************************************************
 // Player Character Functions **************************************************
@@ -52,11 +55,13 @@ void playerController(void) {
     // decrement laserCounter if > 0
     if (player.laserCounter)
         player.laserCounter--;
-    // fire laser if button is pressed
-    if (readButton(BTN_SHOOT)) {
-        if (!player.laserCounter) {
-            fireLaser(LASER_TYPE_PLAYER, PLAYER_X_POSITION, player.y);
-            player.laserCounter = PLAYER_LASER_DELAY;
+    // fire laser if button is pressed and player is alive
+    if (player.state != PLAYER_STATE_EXPLODED) {
+        if (readButton(BTN_SHOOT)) {
+            if (!player.laserCounter) {
+                fireLaser(LASER_TYPE_PLAYER, PLAYER_X_POSITION, player.y);
+                player.laserCounter = PLAYER_LASER_DELAY;
+            }
         }
     }
 }
@@ -71,6 +76,14 @@ void drawPlayer(void) {
         display_drawSprite(PLAYER_X_POSITION, player.y, playerShip[player.keyFrame]);
         player.keyFrame++;          // increment keyFrame counter
         player.keyFrame &= 0x03;    // wrap keyFrame counter
+    }
+    // else, they've exploded...
+    else {
+        // wait for player.keyFrame to hit 0 before respawning
+        if (!(player.keyFrame--)) {
+            // re-spawn if lives left
+            if (playerLives)        gameInit(RESPAWN);
+        }
     }
 }
 
@@ -429,7 +442,53 @@ void checkCollisions() {
             }
         }
     }
-    // TODO: Player Explosion / Collision
+    // check player collisions if not currently exploded
+    if (player.state == PLAYER_STATE_NORMAL) {
+       uint16_t hit = 0;                            // boolean to indicate if a hit is found
+       // iterate over enemies
+       for (i = 0; i < MAX_ENEMIES; i++) {
+           // if no hit found yet and enemy enabled...
+           if (!hit && enemies[i].type) {
+               // check if X hitboxes overlap
+               if ((PLAYER_X_POSITION + 7 >= enemies[i].x    ) &&
+                   (PLAYER_X_POSITION     <= enemies[i].x + 7)   ){
+                   // torpedo Y hitbox
+                   if ((enemies[i].type == ENEMY_TYPE_TORPEDO) &&
+                       (player.y + 7 >= enemies[i].y + 2)      &&
+                       (player.y     <= enemies[i].y + 5)        ){
+                       hit = 1;
+                   }
+                   // buzz drone / ace pilot Y hitbox
+                   else if ((player.y + 7 >= enemies[i].y    ) &&
+                            (player.y     <= enemies[i].y + 7)){
+                       hit = 1;
+                   }
+               }
+           }
+       }
+       // iterate over enemy lasers
+       for (i = 0; i < LASER_MAX_ENEMY; i++) {
+           // if no hit found yet and enemy laser enabled...
+           if (!hit && enemyLasers[i].enabled) {
+               // check if X hitboxes overlap
+               if ((PLAYER_X_POSITION + 7 >= enemyLasers[i].x    ) &&
+                   (PLAYER_X_POSITION     <= enemyLasers[i].x + 7)   ){
+                   // check if Y hitboxes overlap
+                   if ((player.y + 7 >= enemyLasers[i].y    ) &&
+                       (player.y     <= enemyLasers[i].y + 7)   ){
+                       hit = 1;
+                   }
+               }
+           }
+       }
+       // if the player was hit...
+       if (hit) {
+           player.state = PLAYER_STATE_EXPLODED;        // player is now 'sploded
+           player.keyFrame = PLAYER_RESPAWN_DELAY;      // delay between spawning
+           playerLives--;                               // decrement playerLives counter
+           addExplosion(PLAYER_X_POSITION, player.y);    // player's ship explodes
+       }
+    }
 }
 
 
@@ -455,11 +514,19 @@ void drawExplosions() {
 //******************************************************************************
 
 /*
- * ! Initialize all data for start of game
+ * ! Initialize data for start of game / respawn
+ * !
+ * ! \param respawn: boolean indicating if this is a respawn (True) or
+ * !                 new game (False)
  */
-void gameInit(void) {
-    // initialize score
-    playerScore = 0;
+void gameInit(uint8_t respawn) {
+    // if not respawning, initialize score and lives
+    if (!respawn) {
+        // initialize score
+        playerScore = 0;
+        // initialize player lives
+        playerLives = 3;
+    }
     // initialize player character
     player.y = 16;
     player.speed = 0;
@@ -476,20 +543,96 @@ void gameInit(void) {
     for (i = 0; i < MAX_ENEMIES; i++) {
         enemies[i].type = ENEMY_TYPE_DISABLED;
     }
+    // disable all explosions
+    for (i = 0; i < MAX_EXPLOSIONS; i++) {
+        explosions[i].enabled = 0;
+    }
 }
 
 
 /*
- * ! Draw the player score in the top right corner of the screen
+ * ! Draw a right-aligned score at the chosen (x,y) coordinate
+ * !
+ * ! \param score: value to write
+ * ! \param x: x value for rightmost edge of score
+ * ! \param y: y value to draw score at
+ * !
+ * ! Draws the provided score number using 3x5 digit sprites from right
+ * ! to left from the provided (x,y) coordinatee
  */
-void drawScore(void) {
-    uint32_t score = playerScore;   // local copy of playerScore to manipulate
-    uint16_t index = DIGIT_WIDTH;             // position to write to
-    // draw each digit one at a time
+void drawScore(uint16_t player_score, uint16_t x, uint16_t y) {
+    uint16_t score = 0;                         // local copy of score to manipulate
+    if (player_score)   score = playerScore;
+    else                score = highScore;
+    uint16_t index = DIGIT_WIDTH;               // position to start writing from
     do {
+        // draw each digit one at a time
         uint16_t lsb = score % 10;  // store LSB
         score /= 10;                // remove LSB
-        display_drawSprite(SSD1306_COL_STOP - index, 27, digits[lsb]);
+        display_drawSprite(x - index, y, digits[lsb]);
         index += DIGIT_WIDTH;
     } while (score);
+}
+
+
+/*
+ * ! Draw the player lives in the top left corner of the screen
+ * !
+ * ! \returns the current number of lives
+ */
+uint16_t drawLives(void) {
+    uint16_t i = 0;             // local counter for looping
+    uint16_t index = 0;         // location to draw to
+    for(i = 0; i < playerLives; i++) {
+        display_drawSprite(index, 27, playerLife[0]);   // draw each sprite
+        index += LIFE_WIDTH;                            // update position to write to
+    }
+    return playerLives;
+}
+
+
+/*
+ * ! check if the player's score is a higher than the current high
+ * ! score. If so, save the new high score and return 1; else, return 0
+ */
+uint16_t saveHighScore(void) {
+    if (playerScore >= highScore) {
+        //unlock FRAM
+        SYSCFG0 = FRWPPW | DFWP;
+        //store new high score and initials
+        highScore = playerScore;
+        //re-lock FRAM
+        SYSCFG0 = FRWPPW | PFWP | DFWP;
+        return 1;
+    }
+    return 0;
+}
+
+
+/*
+ * ! draws an explosion in a random (x,y) coordinate to give the impression
+ * ! of a fireworks show to celebrate a new high score
+ */
+void highScoreAnimation(uint16_t animation_frame) {
+    // add a new firework if there's enough time for the animation
+    if (animation_frame < (HIGH_SCORE_ANIMATION_LENGTH - EXPLOSION_ANIMATION_LENGTH)) {
+        uint16_t x,y;
+        // get random X coordinate on-screen
+        x = randomNumber() & SSD1306_COL_STOP;
+        // get random Y coordinate that won't overlap the score
+        y = randomNumber() & 0x0F;
+        // draw the new random firework
+        addExplosion(x, y);
+    }
+}
+
+
+/*
+ * ! return the next number in the PRBS-11 pseudo-random number sequence
+ */
+uint16_t randomNumber() {
+    static uint16_t prbs_value = RANDOM_NUMBER_SEED;
+    uint16_t new_bit = ((prbs_value >> 10) ^ (prbs_value >> 8)) & 0x01;
+    prbs_value = (prbs_value << 1) | new_bit;
+    return prbs_value;
 }
