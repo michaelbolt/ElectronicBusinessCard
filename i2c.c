@@ -15,7 +15,6 @@ static volatile uint16_t    i2cTransmitCounter = 0;
 static uint16_t             i2cTransmitIndex = 0;
 
 
-
 /*
  * ! Initialize I2C interface
  * !
@@ -25,13 +24,12 @@ static uint16_t             i2cTransmitIndex = 0;
 void i2c_init(void) {
     // 1. set UCSWRST to disable the eUSCI_B module
     UCB0CTLW0   =   UCSWRST;        // enable SW reset
-    // 2. Initialize all eUSCI_B registers with UCSWRST = 1
+    // 2. Initialize all eUSCI_B registers while UCSWRST = 1
     UCB0CTLW0   |=  UCMODE_3 |      // I2C mode
                     UCMST |         // Master mode
-                    UCSSEL__SMCLK | // CLK source: SMCLK (1 MHz default)
+                    UCSSEL__SMCLK | // CLK source: SMCLK (16 MHz per hardware.c)
                     UCSYNC;         // Synchronous mode enable
-//    UCB0BRW     =   3;              // SCL = SMCLK / 3 ~= 350 kHz
-    UCB0BRW     =   3*16;           // SCL = SMCLK / 3*16 ~350 KHz
+    UCB0BRW     =   48;             // SCL = SMCLK / 48 = ~350 KHz
     // 3. Configure ports:
     //   MSP430FR2433 datasheet p. 55
     //      P1.2 = SDA (DIR=X, SEL=01)
@@ -41,7 +39,6 @@ void i2c_init(void) {
     // 4. Clear UCSWRST to release the eUSCI_B for operation
     UCB0CTLW0   &= ~(UCSWRST);
 }
-
 
 
 /*

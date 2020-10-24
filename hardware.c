@@ -13,17 +13,17 @@
 
 /*
  * ! Set clock frequency to 16 MHz
- * ! Sets DCO (MCLK, SMCLK) to 1.048576 MHz (the classic 2^20)
+ * ! Sets DCO (MCLK, SMCLK) to 16.777216 MHz (2^24)
  */
 void clockSytem_init(void) {
-    // Configure one FRAM waitstate as required by the device datasheet for
+    // Configure one FRAM wait state as required by the device datasheet for
     // operation beyond 8 MHz before configuring the Clock System
     FRCTL0 = FRCTLPW | NWAITS_1;
 
     // Clock System setup
     __bis_SR_register(SCG0);                    // disable FLL
     CSCTL3 |= SELREF__REFOCLK;                  // set REFO as FLL reference source
-    CSCTL0 =0;                                  // clear DCO and MOD registers
+    CSCTL0 = 0;                                 // clear DCO and MOD registers
     CSCTL1 &= !(DCORSEL_7);                     // clear DCO frequency select bits first
     // Follow TI's example for 16 MHz
     CSCTL1 |= DCORSEL_5;                        // set DCO = 16 MHz
@@ -84,14 +84,14 @@ volatile uint16_t btnState = 0;
 /*
  * ! Initialize buttons and debouncing interrupt
  * !
- * ! Configures P2.[0:2] as pull-up resistor inputs
- * ! Configures 5 ms ISR for TimerA0 CCR1
+ * ! Configures Port2 buttons as pull-up resistor inputs
+ * ! Configures 2.5 ms ISR for TimerA0 CCR1
  */
 void buttons_init(void) {
-    // configure P2.[0:2] for a pushbutton input
-    P2DIR &=  ~(BIT0 | BIT1 | BIT2); // input
-    P2REN |=   (BIT0 | BIT1 | BIT2); // enable pull-up/down resistor
-    P2OUT |=   (BIT0 | BIT1 | BIT2); // set to pull-up
+    // configure Port2 pins for pushbutton inputs
+    P2DIR &=  ~(BTN_UP | BTN_DOWN | BTN_SHOOT);     // input
+    P2REN |=   (BTN_UP | BTN_DOWN | BTN_SHOOT);     // enable pull-up/down resistor
+    P2OUT |=   (BTN_UP | BTN_DOWN | BTN_SHOOT);     // set to pull-up
     // configure 5 ms timer interrupt with timerA CCR1
     TA0CTL &= ~(MC_3);              // stop timer if running
     TA0CCR1 = (TA0R + 82) & 0x7FF;  // 2.5ms later (modulo 2048)
