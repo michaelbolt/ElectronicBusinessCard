@@ -104,5 +104,6 @@ typedef struct DisplayRegionList_S {
 void display_frameStart(void);
 uint16_t display_drawSprite(uint16_t x, uint16_t y, const uint8_t *const sprite);
 uint16_t display_drawFrame(void);
+uint16_t display_clearScreen(void);
 
 #endif /* SSD1306_H_ */

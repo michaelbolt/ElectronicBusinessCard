@@ -102,7 +102,6 @@ uint16_t ssd1306_drawPixel(uint16_t x, uint16_t y, uint8_t value){
 }
 
 
-
 /**************************************************************
  * Dirty Rectangle Animation **********************************
  **************************************************************/
@@ -412,5 +411,33 @@ uint16_t display_drawFrame(void) {
 
     // return successful
     return 0;
+}
+
+
+/*
+ * ! Clear the SSD1306 OLED Display
+ * !
+ * ! \return logical OR of all errors encountered;
+ * !         0 if succesful
+ * !
+ * ! Clears the entire display by blanking the screen in four consecutive
+ * ! frame draws.
+ */
+uint16_t display_clearScreen(void) {
+    uint16_t r = 0,     // display row
+             c = 0,     // display column
+             error = 0; // returned errors
+    // blank sprite for drawings
+    const uint8_t blank[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    for (r = 0; r < SSD1306_COLUMNS; r += 8) {
+        // clear each row in a frame
+        display_frameStart();
+        for (c = 0; c < SSD1306_ROWS; c += 8) {
+            error |= display_drawSprite(r, c, blank);
+        }
+        error |= display_drawFrame();
+    }
+    // return accumulated errors
+    return error;
 }
 

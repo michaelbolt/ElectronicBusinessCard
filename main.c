@@ -29,18 +29,7 @@ void main(void) {
     __bis_SR_register(GIE);
 
     // clear screen
-    {
-        uint16_t r = 0,
-                 c = 0;
-        const uint8_t blank[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-        for (r = 0; r < SSD1306_COLUMNS; r += 8) {
-            display_frameStart();
-            for (c = 0; c < SSD1306_ROWS; c += 8) {
-                display_drawSprite(r, c, blank);
-            }
-            display_drawFrame();
-        }
-    }
+    display_clearScreen();
     // infinite main loop
     while(1) {
         // initialize game
@@ -87,18 +76,7 @@ void main(void) {
         // when game over occurs...
         if (saveHighScore()) {                  // if a high-score did occur...
             // clear screen
-            {
-                uint16_t r = 0,
-                         c = 0;
-                const uint8_t blank[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-                for (r = 0; r < SSD1306_COLUMNS; r += 8) {
-                    display_frameStart();
-                    for (c = 0; c < SSD1306_ROWS; c += 8) {
-                        display_drawSprite(r, c, blank);
-                    }
-                    display_drawFrame();
-                }
-            }
+            display_clearScreen();
             // clear frameCount to begin New High Score animation
             frameCount = 0;
             while (frameCount < HIGH_SCORE_ANIMATION_LENGTH) {

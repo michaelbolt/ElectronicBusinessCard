@@ -29,8 +29,8 @@ extern const uint8_t playerShip[][8];   // player sprite defined in gameSprites.
 // struct definition
 typedef struct PLAYER_S {
     // physics
-    int16_t  y;     // y position
-    int16_t  speed; // y speed
+    int16_t  y;             // y position
+    int16_t  speed;         // y speed
     // flags/game logic
     uint16_t state;         // current player state
     uint16_t laserCounter;  // number of frames until next laser fire
@@ -57,8 +57,8 @@ extern const uint8_t acePilotLaser[4][8];
 // struct definition
 typedef struct LASER_S {
     // location
-    int16_t x;  // x position
-    int16_t y;  // y position
+    int16_t x;          // x position
+    int16_t y;          // y position
     // flags/game logic
     uint16_t enabled;   // current laser state
     uint16_t keyFrame;  // which sprite keyFrame to draw
@@ -119,7 +119,7 @@ void drawEnemies();
 #define EXPLOSION_STATE_ENABLED     1
 #define EXPLOSION_STATE_DISABLED    0
 extern const uint8_t explosion[8][8];
-// struct definition
+// struct definition re-using Laser
 typedef Laser Explosion;
 // functions
 void addExplosion(uint16_t x, uint16_t y);
