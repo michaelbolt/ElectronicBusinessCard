@@ -1,8 +1,8 @@
 # ElectronicBusinessCard
-This repository contains the code I am developing for my Electronic Business Card project. To see writeups and follow my progress, follow my blog: [Mr. Dr. Prof. Bolt](https://mrdrprofbolt.wordpress.com/).
+This repository contains the code and PCB design files I developed for my Electronic Business Card project. To see writeups and follow my progress, follow my blog: [Mr. Dr. Prof. Bolt](https://mrdrprofbolt.wordpress.com/).
 
-### Current State of the Project:
-The MSP430FR2433 microcontroller is able to communicate with the SSD1306 OLED display through I2C and handle 8x8 sprite-based animations. A Python GUI is available to help with creating animated sprite data. GPIO Port 2 is debounced using a polling algorithm. A basic game loop implementing player controls (vertical movement and lasers) operates at 16 Hz using the TimerA module and Low-Power Mode 3. Three different enemies have been implemented along with collision detection and a score counter to allow the player to shoot down the enemies. 
+### Current State of the Project: Finished!
+The MSP430FR2433 microcontroller communicates with the SSD1306 OLED display through I2C and handles 8x8 sprite-based animations. A Python GUI is available to help with creating animated sprite data. GPIO Port 2 is debounced using a polling algorithm for player input. A basic game loop implementing player controls (verical movement and lasers), enemy AI (vertical/horizontal movement and lasers), and collision detection (explosions!) is run at 16 Hz using the TimerA module and Low-Power Mode 3. Three different enemies are implemented along with collision detection and a score counter, with life-time high score stored in non-volatile FRAM. If the player gets a high score, a fireworks show is shown to celebrate!
 
 ### Using the Sprite Maker GUI
 1. Download the `SpriteMaker.py` file from the `PythonScripts` folder.
@@ -15,3 +15,5 @@ The MSP430FR2433 microcontroller is able to communicate with the SSD1306 OLED di
 2. Draw up to 16 sprites at (x,y) coordinates with `display_drawSprite(uint16_t x, uint16_t y, const uint8_t *const sprite)`.
 3. After drawing all sprites, call `display_drawFrame()`; this updates all changed regions of the SSD1306 display with minimal I2C communication.
 
+### Board Design files
+Open in Eagle, edit the silkscreen to show your name, and go forth! Impress job interviewers, your friends, and anybody sitting next to you while waiting for a table at a restaurant!
